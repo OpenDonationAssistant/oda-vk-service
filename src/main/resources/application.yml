@@ -1,0 +1,27 @@
+micronaut:
+  application:
+    name: oda-vk-service
+  metrics:
+    enabled: true
+    export:
+      prometheus:
+        enabled: true
+        descriptions: true
+        step: PT1M
+  security:
+    authentication: bearer
+    token:
+      jwt:
+        signatures:
+          jwks:
+            keycloak:
+              url: ${JWKS_URI}
+flyway:
+  datasources:
+    default:
+      enabled: true
+endpoints:
+  prometheus:
+    sensitive: false
+  metrics:
+    sensitive: false
