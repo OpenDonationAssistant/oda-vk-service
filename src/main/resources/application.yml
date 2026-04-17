@@ -20,6 +20,8 @@ flyway:
   datasources:
     default:
       enabled: true
+      schemas: 'vk'
+      default-schema: 'vk'
 endpoints:
   prometheus:
     sensitive: false

@@ -1,3 +1,10 @@
+## ODA VK Service
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/OpenDonationAssistant/oda-vk-service)
+![Sonar Tech Debt](https://img.shields.io/sonar/tech_debt/OpenDonationAssistant_oda-vk-service?server=https%3A%2F%2Fsonarcloud.io)
+![Sonar Violations](https://img.shields.io/sonar/violations/OpenDonationAssistant_oda-vk-service?server=https%3A%2F%2Fsonarcloud.io)
+![Sonar Tests](https://img.shields.io/sonar/tests/OpenDonationAssistant_oda-vk-service?server=https%3A%2F%2Fsonarcloud.io)
+![Sonar Coverage](https://img.shields.io/sonar/coverage/OpenDonationAssistant_oda-vk-service?server=https%3A%2F%2Fsonarcloud.io)
+
 ## Micronaut 4.10.11 Documentation
 
 - [User Guide](https://docs.micronaut.io/4.10.11/guide/index.html)
