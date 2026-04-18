@@ -27,3 +27,6 @@ endpoints:
     sensitive: false
   metrics:
     sensitive: false
+datasources:
+  default:
+    schema: 'vk'
