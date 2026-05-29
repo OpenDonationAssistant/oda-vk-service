@@ -10,6 +10,7 @@ import io.micronaut.serde.annotation.Serdeable;
 @MappedEntity("accounts")
 public record VkAccountData(
   @Id String id,
+  String username,
   @MappedProperty(type = DataType.UUID) String recipientId,
   @MappedProperty(type = DataType.UUID) String refreshTokenId
 ) {}

@@ -8,7 +8,7 @@ import java.io.IOException;
 
 @Singleton
 public class LinkAccountCommandHandler
-  extends AbstractMessageHandler<LinkAccountCommandHandler.LinkTwitchAccount> {
+  extends AbstractMessageHandler<LinkAccountCommandHandler.LinkVkAccount> {
 
   private final VkAccountRepository repository;
 
@@ -21,18 +21,20 @@ public class LinkAccountCommandHandler
   }
 
   @Override
-  public void handle(LinkTwitchAccount command) throws IOException {
+  public void handle(LinkVkAccount command) throws IOException {
     repository.create(
       command.recipientId(),
       command.refreshTokenId(),
-      command.id()
+      command.id(),
+      command.username()
     );
   }
 
   @Serdeable
-  public static record LinkTwitchAccount(
+  public static record LinkVkAccount(
     String recipientId,
     String refreshTokenId,
-    String id
+    String id,
+    String username
   ) {}
 }

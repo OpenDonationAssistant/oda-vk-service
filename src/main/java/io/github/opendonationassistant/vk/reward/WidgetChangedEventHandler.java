@@ -4,7 +4,11 @@ import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochGenerator;
 import io.github.opendonationassistant.commons.logging.ODALogger;
 import io.github.opendonationassistant.events.AbstractMessageHandler;
+import io.github.opendonationassistant.integration.VkClient;
+import io.github.opendonationassistant.integration.VkDataClient;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;
+import io.micronaut.rabbitmq.annotation.Queue;
+import io.micronaut.rabbitmq.annotation.RabbitListener;
 import io.micronaut.serde.ObjectMapper;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.inject.Inject;
@@ -13,31 +17,34 @@ import java.io.IOException;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
-@Singleton
-public class WidgetChangedEventHandler
-  extends AbstractMessageHandler<WidgetChangedEventHandler.WidgetChangedEvent> {
+@RabbitListener
+public class WidgetChangedEventHandler {
+
+  public static final String QUEUE_NAME = "vk.command";
+  public static final io.github.opendonationassistant.rabbit.Queue QUEUE =
+    new io.github.opendonationassistant.rabbit.Queue(QUEUE_NAME);
+  private static final String WIDGET_TYPE = "media";
 
   private ODALogger log = new ODALogger(this);
-  private static final String WIDGET_TYPE = "media";
 
   private final TimeBasedEpochGenerator uuid =
     Generators.timeBasedEpochGenerator();
   private final RewardRepository rewardRepository;
   private final VkAccountRepository accountRepository;
+  private final VkClient vk;
 
   @Inject
   public WidgetChangedEventHandler(
-    ObjectMapper mapper,
     RewardRepository rewardRepository,
-    VkAccountRepository accountRepository
+    VkAccountRepository accountRepository,
+    VkClient vk
   ) {
-    super(mapper);
     this.rewardRepository = rewardRepository;
     this.accountRepository = accountRepository;
-    // this.twitch = twitch;
+    this.vk = vk;
   }
 
-  @Override
+  @Queue("vk.music-config")
   public void handle(WidgetChangedEvent event) throws IOException {
     if (!"updated".equals(event.type())) {
       return;
@@ -66,19 +73,14 @@ public class WidgetChangedEventHandler
       return;
     }
 
-    // var account = accountRepository.findByRecipientId(ownerId);
-    // if (account.isEmpty()) {
-    //   return;
-    // }
-    //
-    // var refreshTokenId = account.get().refreshTokenId();
-    // var recipientId = ownerId;
-
-    // rewardRepository.deleteByRecipientId(recipientId);
-
-    // processSystem(properties, "twitch", recipientId, refreshTokenId);
-    // processSystem(properties, "vklive", recipientId, refreshTokenId);
-    // processSystem(properties, "kick", recipientId, refreshTokenId);
+    var accounts = accountRepository.findByRecipientId(ownerId);
+    if (accounts.isEmpty()) {
+      return;
+    }
+    accounts.forEach(account -> {
+      // rewardRepository.deleteByRecipientId(recipientId);
+      processSystem(properties, "vk", ownerId, account.data().refreshTokenId());
+    });
   }
 
   private void processSystem(
@@ -112,39 +114,28 @@ public class WidgetChangedEventHandler
     if (cost == null) {
       return;
     }
-
-    // twitch
-    //   .createCustomReward(
-    //     recipientId,
-    //     refreshTokenId,
-    //     new TwitchApiClient.CreateCustomRewardRequest(
-    //       title,
-    //       cost,
-    //       null,
-    //       null,
-    //       null,
-    //       null,
-    //       null,
-    //       null,
-    //       null,
-    //       null,
-    //       null,
-    //       null,
-    //       null
-    //     )
-    //   )
-    //   .join()
-    //   .data()
-    //   .forEach(reward -> {
-    //     rewardRepository.save(
-    //       new TwitchRewardData(
-    //         reward.id(),
-    //         recipientId,
-    //         refreshTokenId,
-    //         "music"
-    //       )
-    //     );
-    //   });
+    vk.createReward(
+      new VkDataClient.RewardRequest(
+        new VkDataClient.RewardRequest.Reward(
+          0,
+          null,
+          true,
+          -1,
+          -1,
+          title,
+          cost,
+          -1
+        )
+      )
+    );
+    rewardRepository.save(
+      new RewardData(
+        uuid.generate().toString(),
+        recipientId,
+        refreshTokenId,
+        "music"
+      )
+    );
   }
 
   private boolean findBoolProperty(
@@ -217,4 +208,3 @@ public class WidgetChangedEventHandler
     @Nullable Object value
   ) {}
 }
-

@@ -1,4 +1,7 @@
 micronaut:
+  serde:
+    serialization:
+      inclusion: ALWAYS
   application:
     name: oda-vk-service
   metrics:
@@ -16,17 +19,19 @@ micronaut:
           jwks:
             keycloak:
               url: ${JWKS_URI}
+  executors:
+    command-listener:
+      type: fixed
+      nThreads: 1
+    event-listener:
+      type: fixed
+      nThreads: 1
 flyway:
   datasources:
     default:
       enabled: true
-      schemas: 'vk'
-      default-schema: 'vk'
 endpoints:
   prometheus:
     sensitive: false
   metrics:
     sensitive: false
-datasources:
-  default:
-    schema: 'vk'
