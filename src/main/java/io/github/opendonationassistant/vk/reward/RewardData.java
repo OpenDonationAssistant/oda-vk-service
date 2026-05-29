@@ -1,4 +1,4 @@
-package io.github.opendonationassistant.vk.repository;
+package io.github.opendonationassistant.vk.reward;
 
 import io.micronaut.data.annotation.Id;
 import io.micronaut.data.annotation.MappedEntity;

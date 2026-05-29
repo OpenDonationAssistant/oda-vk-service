@@ -9,7 +9,7 @@ import io.micronaut.serde.annotation.Serdeable;
 import org.jspecify.annotations.Nullable;
 
 @Client("${vk.api.url}")
-public interface VkClient {
+public interface VkDataClient {
   @Post("/v1/channel_point/reward/create")
   void createReward(@Body RewardRequest request);
 
