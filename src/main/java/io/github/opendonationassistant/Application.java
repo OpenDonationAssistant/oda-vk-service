@@ -1,7 +1,7 @@
 package io.github.opendonationassistant;
 
 import io.github.opendonationassistant.rabbit.AMQPConfiguration;
-import io.github.opendonationassistant.rabbit.Exchange;
+import io.github.opendonationassistant.vk.reward.WidgetChangedEventHandler;
 import io.micronaut.context.ApplicationContextBuilder;
 import io.micronaut.context.ApplicationContextConfigurer;
 import io.micronaut.context.annotation.ContextConfigurer;
@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.*;
 import io.swagger.v3.oas.annotations.info.*;
 import jakarta.inject.Singleton;
 import java.util.List;
-import java.util.Map;
 
 @OpenAPIDefinition(info = @Info(title = "oda-vk-service", version = "0.0"))
 @Factory
@@ -35,13 +34,7 @@ public class Application {
   @Singleton
   public ChannelInitializer rabbitConfiguration() {
     return new AMQPConfiguration(
-      List.of(
-        CommandListener.BINDING,
-        Exchange.Exchange(
-          "changes.widgets",
-          Map.of("music", CommandListener.QUEUE)
-        )
-      )
+      List.of(CommandListener.BINDING, WidgetChangedEventHandler.BINDING)
     );
   }
 }

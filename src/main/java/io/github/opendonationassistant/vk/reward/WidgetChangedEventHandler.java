@@ -3,26 +3,29 @@ package io.github.opendonationassistant.vk.reward;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochGenerator;
 import io.github.opendonationassistant.commons.logging.ODALogger;
-import io.github.opendonationassistant.events.AbstractMessageHandler;
 import io.github.opendonationassistant.integration.VkClient;
 import io.github.opendonationassistant.integration.VkDataClient;
+import io.github.opendonationassistant.rabbit.Exchange;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;
 import io.micronaut.rabbitmq.annotation.Queue;
 import io.micronaut.rabbitmq.annotation.RabbitListener;
-import io.micronaut.serde.ObjectMapper;
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 @RabbitListener
 public class WidgetChangedEventHandler {
 
-  public static final String QUEUE_NAME = "vk.command";
+  public static final String QUEUE_NAME = "vk.config-music";
   public static final io.github.opendonationassistant.rabbit.Queue QUEUE =
     new io.github.opendonationassistant.rabbit.Queue(QUEUE_NAME);
+  public static final Exchange BINDING = Exchange.Exchange(
+    "changes.widgets",
+    Map.of("music", WidgetChangedEventHandler.QUEUE)
+  );
   private static final String WIDGET_TYPE = "media";
 
   private ODALogger log = new ODALogger(this);
@@ -44,7 +47,7 @@ public class WidgetChangedEventHandler {
     this.vk = vk;
   }
 
-  @Queue("vk.music-config")
+  @Queue("vk.config-music")
   public void handle(WidgetChangedEvent event) throws IOException {
     if (!"updated".equals(event.type())) {
       return;
