@@ -1,6 +1,7 @@
 CREATE TABLE accounts (
-    id VARCHAR(50) primary key,
+    id UUID PRIMARY KEY,
+    vk_id VARCHAR(50) not null,
     username VARCHAR(100) not null,
-    recipient_id UUID NOT NULL,
+    recipient_id VARCHAR(100) NOT NULL,
     refresh_token_id UUID NOT NULL
 );

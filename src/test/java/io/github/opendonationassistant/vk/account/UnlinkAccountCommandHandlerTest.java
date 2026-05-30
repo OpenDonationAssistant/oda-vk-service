@@ -1,7 +1,6 @@
 package io.github.opendonationassistant.vk.account;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.uuid.Generators;
 import io.github.opendonationassistant.rabbit.RabbitClient;
@@ -17,7 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @MicronautTest(environments = "allinone")
 @ExtendWith(InstancioExtension.class)
-public class LinkAccountCommandHandlerTest {
+public class UnlinkAccountCommandHandlerTest {
 
   @Inject
   ChannelPool channel;
@@ -29,31 +28,30 @@ public class LinkAccountCommandHandlerTest {
   VkAccountRepository repository;
 
   @Test
-  public void testCreatingLink() {
+  public void testUnlinkingAccount() {
     var recipientId = Generators.timeBasedEpochGenerator()
       .generate()
       .toString();
     var refreshTokenId = Generators.timeBasedEpochGenerator()
       .generate()
       .toString();
+    var vkId = "vk-user-id";
+    var username = "vk-username";
+
+    repository.create(recipientId, refreshTokenId, vkId, username);
+    var before = repository.findByRecipientId(recipientId);
+    assertEquals(1, before.size());
+
     var rabbit = new RabbitClient(channel, mapper, "commands");
     rabbit.sendCommand(
-      new LinkAccountCommandHandler.LinkVkAccount(
+      new UnlinkAccountCommandHandler.UnlinkVkAccount(
         recipientId,
-        refreshTokenId,
-        "id",
-        "username"
+        refreshTokenId
       )
     );
+
     Awaitility.await()
       .pollDelay(Duration.ofSeconds(1))
-      .until(() -> repository.findByRecipientId(recipientId).size() > 0);
-    var all = repository.findByRecipientId(recipientId);
-    assertEquals(1, all.size());
-    var account = all.stream().findFirst().get();
-    assertTrue(account.data().id() != null);
-    assertEquals(refreshTokenId, account.data().refreshTokenId());
-    assertEquals("id", account.data().vkId());
-    assertEquals("username", account.data().username());
+      .until(() -> repository.findByRecipientId(recipientId).isEmpty());
   }
 }

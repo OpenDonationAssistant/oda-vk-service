@@ -9,4 +9,9 @@ import java.util.List;
 public interface VkAccountDataRepository
   extends CrudRepository<VkAccountData, String> {
   List<VkAccountData> findByRecipientId(String recipientId);
+
+  void deleteByRecipientIdAndRefreshTokenId(
+    String recipientId,
+    String refreshTokenId
+  );
 }
