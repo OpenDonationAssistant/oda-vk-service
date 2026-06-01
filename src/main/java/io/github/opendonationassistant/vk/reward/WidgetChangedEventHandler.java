@@ -24,7 +24,7 @@ public class WidgetChangedEventHandler {
     new io.github.opendonationassistant.rabbit.Queue(QUEUE_NAME);
   public static final Exchange BINDING = Exchange.Exchange(
     "changes.widgets",
-    Map.of("music", WidgetChangedEventHandler.QUEUE)
+    Map.of("media", WidgetChangedEventHandler.QUEUE)
   );
   private static final String WIDGET_TYPE = "media";
 
@@ -50,34 +50,41 @@ public class WidgetChangedEventHandler {
   @Queue("vk.config-music")
   public void handle(WidgetChangedEvent event) throws IOException {
     if (!"updated".equals(event.type())) {
+      log.debug("Received event is not update");
       return;
     }
 
     var widget = event.widget();
     if (widget == null) {
+      log.debug("Missing widget");
       return;
     }
     if (!WIDGET_TYPE.equals(widget.type())) {
+      log.debug("Wrong type");
       return;
     }
 
     var config = widget.config();
     if (config == null) {
+      log.debug("Missing config");
       return;
     }
 
     var properties = config.properties();
     if (properties == null) {
+      log.debug("Missing properties");
       return;
     }
 
     var ownerId = widget.ownerId();
     if (ownerId == null) {
+      log.debug("Missing ownerId");
       return;
     }
 
     var accounts = accountRepository.findByRecipientId(ownerId);
     if (accounts.isEmpty()) {
+      log.debug("Missing accounts");
       return;
     }
     accounts.forEach(account -> {
@@ -98,6 +105,7 @@ public class WidgetChangedEventHandler {
     );
     log.info("music-" + system + "-request-title: " + enabled);
     if (!enabled) {
+      log.debug("System is disabled");
       return;
     }
 
@@ -107,6 +115,7 @@ public class WidgetChangedEventHandler {
     );
     log.info("music-" + system + "-request-title: " + title);
     if (title == null) {
+      log.debug("Missing title");
       return;
     }
     Integer cost = findIntProperty(
@@ -115,8 +124,10 @@ public class WidgetChangedEventHandler {
     );
     log.info("music-" + system + "-request-cost: " + cost);
     if (cost == null) {
+      log.debug("Missing cost");
       return;
     }
+    log.debug("Creating reward");
     vk.createReward(
       new VkDataClient.RewardRequest(
         new VkDataClient.RewardRequest.Reward(

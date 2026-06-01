@@ -5,7 +5,7 @@ import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.MappedProperty;
 import io.micronaut.data.model.DataType;
 
-@MappedEntity
+@MappedEntity("reward")
 public record RewardData(
   @Id String id,
   @MappedProperty String recipientId,
