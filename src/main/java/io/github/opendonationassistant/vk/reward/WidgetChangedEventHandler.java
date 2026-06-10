@@ -87,6 +87,7 @@ public class WidgetChangedEventHandler {
       log.debug("Missing accounts");
       return;
     }
+    log.info("Updating reward for account", Map.of("recipientId", ownerId));
     accounts.forEach(account -> {
       // rewardRepository.deleteByRecipientId(recipientId);
       processSystem(properties, "vk", ownerId, account.data().refreshTokenId());
