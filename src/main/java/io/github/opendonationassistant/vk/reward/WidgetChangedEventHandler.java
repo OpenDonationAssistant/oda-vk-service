@@ -90,7 +90,7 @@ public class WidgetChangedEventHandler {
     log.info("Updating reward for account", Map.of("recipientId", ownerId));
     accounts.forEach(account -> {
       // rewardRepository.deleteByRecipientId(recipientId);
-      processSystem(properties, "vk", ownerId, account.data().refreshTokenId());
+      processSystem(properties, "vklive", ownerId, account.data().refreshTokenId());
     });
   }
 
