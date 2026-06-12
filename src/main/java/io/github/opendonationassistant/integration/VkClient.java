@@ -1,33 +1,72 @@
 package io.github.opendonationassistant.integration;
 
+import io.github.opendonationassistant.rabbit.TokenRPC;
+import io.github.opendonationassistant.rabbit.TokenRPC.TokenRequest;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class VkClient {
 
   private final VkDataClient client;
+  private final TokenRPC tokenRPC;
 
-  public VkClient(VkDataClient client) {
+  @Inject
+  public VkClient(VkDataClient client, TokenRPC tokenRPC) {
     this.client = client;
+    this.tokenRPC = tokenRPC;
   }
 
-  public void createReward(VkDataClient.RewardRequest request) {
-    client.createReward(request);
+  private Optional<String> token(String recipientId, String refreshTokenId) {
+    return Optional.ofNullable(
+      tokenRPC.token(new TokenRequest(recipientId, refreshTokenId))
+    ).map(TokenRPC.TokenResponse::token);
   }
 
-  public void editReward(VkDataClient.RewardRequest request) {
-    client.editReward(request);
+  public CompletableFuture<Void> createReward(
+    String recipientId,
+    String refreshTokenId,
+    VkDataClient.RewardRequest request
+  ) {
+    return token(recipientId, refreshTokenId)
+      .map(token ->
+        client
+          .createReward(token, request)
+          .thenAccept(response -> response.data().reward().id())
+      )
+      .orElse(CompletableFuture.failedFuture(new RuntimeException("No token")));
   }
 
-  public void deleteReward(String channelId, String rewardId) {
-    client.deleteReward(channelId, rewardId);
+  public CompletableFuture<Void> editReward(
+    String recipientId,
+    String refreshTokenId,
+    VkDataClient.RewardRequest request
+  ) {
+    return token(recipientId, refreshTokenId)
+      .map(token -> client.editReward(token, request))
+      .orElse(CompletableFuture.completedFuture(null));
   }
 
-  public void disableReward(String channelId, String rewardId) {
-    client.disableReward(channelId, rewardId);
-  }
-
-  public void enableReward(String channelId, String rewardId) {
-    client.enableReward(channelId, rewardId);
-  }
+  // public CompletableFuture<Void> deleteReward(
+  //   String channelId,
+  //   String rewardId
+  // ) {
+  //   return client.deleteReward(channelId, rewardId);
+  // }
+  //
+  // public CompletableFuture<Void> disableReward(
+  //   String channelId,
+  //   String rewardId
+  // ) {
+  //   client.disableReward(channelId, rewardId);
+  // }
+  //
+  // public CompletableFuture<Void> enableReward(
+  //   String channelId,
+  //   String rewardId
+  // ) {
+  //   client.enableReward(channelId, rewardId);
+  // }
 }

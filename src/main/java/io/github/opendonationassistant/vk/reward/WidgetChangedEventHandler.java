@@ -90,7 +90,12 @@ public class WidgetChangedEventHandler {
     log.info("Updating reward for account", Map.of("recipientId", ownerId));
     accounts.forEach(account -> {
       // rewardRepository.deleteByRecipientId(recipientId);
-      processSystem(properties, "vklive", ownerId, account.data().refreshTokenId());
+      processSystem(
+        properties,
+        "vklive",
+        ownerId,
+        account.data().refreshTokenId()
+      );
     });
   }
 
@@ -129,20 +134,24 @@ public class WidgetChangedEventHandler {
       return;
     }
     log.debug("Creating reward");
-    vk.createReward(
-      new VkDataClient.RewardRequest(
-        new VkDataClient.RewardRequest.Reward(
-          0,
-          null,
-          true,
-          -1,
-          -1,
-          title,
-          cost,
-          -1
+    vk
+      .createReward(
+        recipientId,
+        refreshTokenId,
+        new VkDataClient.RewardRequest(
+          new VkDataClient.RewardRequest.Reward(
+            0,
+            null,
+            true,
+            -1,
+            -1,
+            title,
+            cost,
+            -1
+          )
         )
       )
-    );
+      .join();
     rewardRepository.save(
       new RewardData(
         uuid.generate().toString(),

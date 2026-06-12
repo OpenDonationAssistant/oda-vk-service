@@ -2,38 +2,58 @@ package io.github.opendonationassistant.integration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.http.annotation.Body;
+import io.micronaut.http.annotation.Header;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.serde.annotation.Serdeable;
+import java.util.concurrent.CompletableFuture;
 import org.jspecify.annotations.Nullable;
 
-@Client("vklive")
+@Client("vklive-data")
+@Header(name = "Content-Type", value = "application/json")
 public interface VkDataClient {
-
   @Post("/v1/channel_point/reward/create")
-  void createReward(@Body RewardRequest request);
+  CompletableFuture<DataWrapper<CreateRewardResponse>> createReward(
+    @Header("Authorization") String token,
+    @Body RewardRequest request
+  );
 
   @Post("/v1/channel_point/reward/edit")
-  void editReward(@Body RewardRequest request);
+  CompletableFuture<Void> editReward(
+    @Header("Authorization") String token,
+    @Body RewardRequest request
+  );
 
   @Post("/v1/channel_point/reward/delete")
-  void deleteReward(
+  CompletableFuture<Void> deleteReward(
+    @Header("Authorization") String token,
     @QueryValue("channel_id") String channelId,
     @QueryValue("reward_id") String rewardId
   );
 
   @Post("/v1/channel_point/reward/disable")
-  void disableReward(
+  CompletableFuture<Void> disableReward(
+    @Header("Authorization") String token,
     @QueryValue("channel_id") String channelId,
     @QueryValue("reward_id") String rewardId
   );
 
   @Post("/v1/channel_point/reward/enable")
-  void enableReward(
+  CompletableFuture<Void> enableReward(
+    @Header("Authorization") String token,
     @QueryValue("channel_id") String channelId,
     @QueryValue("reward_id") String rewardId
   );
+
+  @Serdeable
+  public static record DataWrapper<T>(T data) {}
+
+  @Serdeable
+  public static record CreateRewardResponse(RewardData reward) {}
+
+  @Serdeable
+  public static record RewardData(String id) {}
 
   @Serdeable
   public record RewardRequest(@JsonProperty("reward") @Nullable Reward reward) {
