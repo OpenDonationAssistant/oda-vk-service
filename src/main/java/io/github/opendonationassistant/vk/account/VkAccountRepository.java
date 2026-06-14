@@ -17,12 +17,14 @@ public class VkAccountRepository {
     String recipientId,
     String refreshTokenId,
     String vkId,
-    String username
+    String username,
+    String channelUrl
   ) {
     var data = new VkAccountData(
       Generators.timeBasedEpochGenerator().generate().toString(),
       vkId,
       username,
+      channelUrl,
       recipientId,
       refreshTokenId
     );

@@ -12,6 +12,7 @@ public record VkAccountData(
   @Id @MappedProperty(type = DataType.UUID) String id,
   String vkId,
   String username,
+  String channelUrl,
   @MappedProperty String recipientId,
   @MappedProperty(type = DataType.UUID) String refreshTokenId
 ) {}

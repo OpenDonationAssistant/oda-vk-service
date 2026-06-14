@@ -6,6 +6,7 @@ import io.github.opendonationassistant.commons.logging.ODALogger;
 import io.github.opendonationassistant.integration.VkClient;
 import io.github.opendonationassistant.integration.VkDataClient;
 import io.github.opendonationassistant.rabbit.Exchange;
+import io.github.opendonationassistant.vk.account.VkAccount;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;
 import io.micronaut.rabbitmq.annotation.Queue;
 import io.micronaut.rabbitmq.annotation.RabbitListener;
@@ -90,20 +91,14 @@ public class WidgetChangedEventHandler {
     log.info("Updating reward for account", Map.of("recipientId", ownerId));
     accounts.forEach(account -> {
       // rewardRepository.deleteByRecipientId(recipientId);
-      processSystem(
-        properties,
-        "vklive",
-        ownerId,
-        account.data().refreshTokenId()
-      );
+      processSystem(properties, "vklive", account);
     });
   }
 
   private void processSystem(
     List<WidgetProperty> properties,
     String system,
-    String recipientId,
-    String refreshTokenId
+    VkAccount account
   ) {
     var enabled = findBoolProperty(
       properties,
@@ -134,10 +129,11 @@ public class WidgetChangedEventHandler {
       return;
     }
     log.debug("Creating reward");
-    vk
+    final String createdId = vk
       .createReward(
-        recipientId,
-        refreshTokenId,
+        account.data().recipientId(),
+        account.data().refreshTokenId(),
+        account.data().channelUrl(),
         new VkDataClient.RewardRequest(
           new VkDataClient.RewardRequest.Reward(
             // 0,
@@ -153,9 +149,9 @@ public class WidgetChangedEventHandler {
       .join();
     rewardRepository.save(
       new RewardData(
-        uuid.generate().toString(),
-        recipientId,
-        refreshTokenId,
+        createdId,
+        account.data().recipientId(),
+        account.data().refreshTokenId(),
         "music"
       )
     );

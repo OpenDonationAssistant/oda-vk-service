@@ -25,16 +25,17 @@ public class VkClient {
     ).map(it -> "Bearer %s".formatted(it.token()));
   }
 
-  public CompletableFuture<Void> createReward(
+  public CompletableFuture<String> createReward(
     String recipientId,
     String refreshTokenId,
+    String channelUrl,
     VkDataClient.RewardRequest request
   ) {
     return token(recipientId, refreshTokenId)
       .map(token ->
         client
-          .createReward(token, request)
-          .thenAccept(response -> response.data().reward().id())
+          .createReward(token, channelUrl, request)
+          .thenApply(response -> response.data().reward().id())
       )
       .orElse(CompletableFuture.failedFuture(new RuntimeException("No token")));
   }

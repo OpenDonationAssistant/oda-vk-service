@@ -16,6 +16,7 @@ public interface VkDataClient {
   @Post("/v1/channel_point/reward/create")
   CompletableFuture<DataWrapper<CreateRewardResponse>> createReward(
     @Header("Authorization") String token,
+    @QueryValue("channel_url") String channelUrl,
     @Body RewardRequest request
   );
 

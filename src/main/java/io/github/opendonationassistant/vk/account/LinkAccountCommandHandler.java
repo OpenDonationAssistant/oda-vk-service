@@ -26,7 +26,8 @@ public class LinkAccountCommandHandler
       command.recipientId(),
       command.refreshTokenId(),
       command.id(),
-      command.username()
+      command.username(),
+      command.channelUrl()
     );
   }
 
@@ -35,6 +36,7 @@ public class LinkAccountCommandHandler
     String recipientId,
     String refreshTokenId,
     String id,
-    String username
+    String username,
+    String channelUrl
   ) {}
 }

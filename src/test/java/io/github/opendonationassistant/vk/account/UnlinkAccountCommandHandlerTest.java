@@ -37,8 +37,9 @@ public class UnlinkAccountCommandHandlerTest {
       .toString();
     var vkId = "vk-user-id";
     var username = "vk-username";
+    var channelUrl = "channelUrl";
 
-    repository.create(recipientId, refreshTokenId, vkId, username);
+    repository.create(recipientId, refreshTokenId, vkId, username, channelUrl);
     var before = repository.findByRecipientId(recipientId);
     assertEquals(1, before.size());
 

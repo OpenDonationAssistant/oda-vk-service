@@ -42,7 +42,8 @@ public class LinkAccountCommandHandlerTest {
         recipientId,
         refreshTokenId,
         "id",
-        "username"
+        "username",
+        "channelUrl"
       )
     );
     Awaitility.await()
@@ -55,5 +56,6 @@ public class LinkAccountCommandHandlerTest {
     assertEquals(refreshTokenId, account.data().refreshTokenId());
     assertEquals("id", account.data().vkId());
     assertEquals("username", account.data().username());
+    assertEquals("channelUrl", account.data().channelUrl());
   }
 }
