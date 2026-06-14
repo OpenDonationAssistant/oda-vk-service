@@ -59,14 +59,14 @@ public interface VkDataClient {
   public record RewardRequest(@JsonProperty("reward") @Nullable Reward reward) {
     @Serdeable
     public static record Reward(
-      @JsonProperty("background_color") int backgroundColor,
-      @JsonProperty("description") @Nullable String description,
+      // @JsonProperty("background_color") int backgroundColor,
+      // @JsonProperty("description") @Nullable String description,
       @JsonProperty("is_message_required") boolean isMessageRequired,
-      @JsonProperty("max_uses_count") int maxUsesCount,
-      @JsonProperty("max_uses_count_per_user") int maxUsesCountPerUser,
+      // @JsonProperty("max_uses_count") int maxUsesCount,
+      // @JsonProperty("max_uses_count_per_user") int maxUsesCountPerUser,
       @JsonProperty("name") @Nullable String name,
-      @JsonProperty("price") int price,
-      @JsonProperty("repair_timeout") int repairTimeout
+      @JsonProperty("price") int price
+      // @JsonProperty("repair_timeout") int repairTimeout
     ) {}
   }
 }

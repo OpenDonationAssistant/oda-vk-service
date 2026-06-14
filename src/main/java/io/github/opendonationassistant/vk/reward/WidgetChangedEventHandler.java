@@ -140,14 +140,13 @@ public class WidgetChangedEventHandler {
         refreshTokenId,
         new VkDataClient.RewardRequest(
           new VkDataClient.RewardRequest.Reward(
-            0,
-            null,
+            // 0,
+            // null,
             true,
-            -1,
-            -1,
+            // -1,
+            // -1,
             title,
-            cost,
-            -1
+            cost
           )
         )
       )
