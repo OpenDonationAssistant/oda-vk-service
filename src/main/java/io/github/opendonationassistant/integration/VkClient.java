@@ -22,7 +22,7 @@ public class VkClient {
   private Optional<String> token(String recipientId, String refreshTokenId) {
     return Optional.ofNullable(
       tokenRPC.token(new TokenRequest(recipientId, refreshTokenId))
-    ).map(TokenRPC.TokenResponse::token);
+    ).map(it -> "Bearer %s".formatted(it.token()));
   }
 
   public CompletableFuture<Void> createReward(
@@ -48,7 +48,6 @@ public class VkClient {
       .map(token -> client.editReward(token, request))
       .orElse(CompletableFuture.completedFuture(null));
   }
-
   // public CompletableFuture<Void> deleteReward(
   //   String channelId,
   //   String rewardId
