@@ -40,6 +40,17 @@ public class VkClient {
       .orElse(CompletableFuture.failedFuture(new RuntimeException("No token")));
   }
 
+  public CompletableFuture<Void> acceptReward(
+    String recipientId,
+    String refreshTokenId,
+    String channelUrl,
+    VkDataClient.AcceptRewardRequest request
+  ){
+    return token(recipientId, refreshTokenId)
+      .map(token -> client.acceptReward(token, channelUrl, request))
+      .orElse(CompletableFuture.completedFuture(null));
+  }
+
   public CompletableFuture<Void> editReward(
     String recipientId,
     String refreshTokenId,

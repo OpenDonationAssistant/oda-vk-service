@@ -7,6 +7,8 @@ import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.serde.annotation.Serdeable;
+
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.jspecify.annotations.Nullable;
 
@@ -24,6 +26,19 @@ public interface VkDataClient {
   CompletableFuture<Void> editReward(
     @Header("Authorization") String token,
     @Body RewardRequest request
+  );
+
+  @Serdeable
+  public static record AcceptRewardRequest(List<Demand> demands){}
+
+  @Serdeable
+  public static record Demand(Long id){}
+
+  @Post("/v1/channel_point/reward/demand/accept")
+  CompletableFuture<Void> acceptReward(
+    @Header("Authorization") String token,
+    @QueryValue("channel_id") String channelId,
+    @Body AcceptRewardRequest request
   );
 
   @Post("/v1/channel_point/reward/delete")

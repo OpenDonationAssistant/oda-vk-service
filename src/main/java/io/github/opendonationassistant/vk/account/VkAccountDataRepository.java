@@ -10,6 +10,8 @@ public interface VkAccountDataRepository
   extends CrudRepository<VkAccountData, String> {
   List<VkAccountData> findByRecipientId(String recipientId);
 
+  List<VkAccountData> findByVkId(String vkId);
+
   void deleteByRecipientIdAndRefreshTokenId(
     String recipientId,
     String refreshTokenId

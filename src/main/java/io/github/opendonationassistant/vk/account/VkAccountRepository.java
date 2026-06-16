@@ -1,6 +1,7 @@
 package io.github.opendonationassistant.vk.account;
 
 import com.fasterxml.uuid.Generators;
+import io.github.opendonationassistant.integration.VkClient;
 import jakarta.inject.Singleton;
 import java.util.List;
 
@@ -8,9 +9,14 @@ import java.util.List;
 public class VkAccountRepository {
 
   private final VkAccountDataRepository dataRepository;
+  private final VkClient vk;
 
-  public VkAccountRepository(VkAccountDataRepository dataRepository) {
+  public VkAccountRepository(
+    VkAccountDataRepository dataRepository,
+    VkClient vk
+  ) {
     this.dataRepository = dataRepository;
+    this.vk = vk;
   }
 
   public VkAccount create(
@@ -32,6 +38,10 @@ public class VkAccountRepository {
     return convert(saved);
   }
 
+  public List<VkAccount> findByVKId(String vkId) {
+    return dataRepository.findByVkId(vkId).stream().map(this::convert).toList();
+  }
+
   public List<VkAccount> findByRecipientId(String recipientId) {
     var data = dataRepository.findByRecipientId(recipientId);
     return data.stream().map(this::convert).toList();
@@ -48,6 +58,6 @@ public class VkAccountRepository {
   }
 
   private VkAccount convert(VkAccountData data) {
-    return new VkAccount(data);
+    return new VkAccount(data, vk);
   }
 }
