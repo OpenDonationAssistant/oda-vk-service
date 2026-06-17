@@ -91,11 +91,12 @@ public class WidgetChangedEventHandler {
     log.info("Updating reward for account", Map.of("recipientId", ownerId));
     accounts.forEach(account -> {
       // rewardRepository.deleteByRecipientId(recipientId);
-      processSystem(properties, "vklive", account);
+      processSystem(widget.id(), properties, "vklive", account);
     });
   }
 
   private void processSystem(
+    String widgetId,
     List<WidgetProperty> properties,
     String system,
     VkAccount account
@@ -150,6 +151,7 @@ public class WidgetChangedEventHandler {
     rewardRepository.save(
       new RewardData(
         createdId,
+        widgetId,
         account.data().recipientId(),
         account.data().refreshTokenId(),
         "music"
