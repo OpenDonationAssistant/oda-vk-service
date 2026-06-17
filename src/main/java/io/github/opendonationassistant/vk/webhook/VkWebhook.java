@@ -56,8 +56,11 @@ public class VkWebhook {
     String id,
     String type,
     @JsonProperty("user_id") String userId,
-    Demand demand
+    EventData data
   ) {}
+
+  @Serdeable 
+  public static record EventData(Demand demand){}
 
   @Serdeable
   public static record Demand(

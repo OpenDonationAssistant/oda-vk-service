@@ -45,11 +45,12 @@ public class PointsDemandCreateHandler implements VkEventHandler {
       .stream()
       .findFirst();
     var acceptRequest = new VkDataClient.AcceptRewardRequest(
-      List.of(new VkDataClient.Demand(event.demand().id()))
+      List.of(new VkDataClient.Demand(event.data().demand().id()))
     );
     return account
       .map(it -> {
         event
+          .data()
           .demand()
           .messageParts()
           .forEach(part -> {
@@ -63,7 +64,7 @@ public class PointsDemandCreateHandler implements VkEventHandler {
                       commands.sendCommand(
                         new AddMediaCommand(
                           url,
-                          event.demand().user().nick(),
+                          event.data().demand().user().nick(),
                           it.data().recipientId(),
                           "twitch"
                         )
