@@ -1,6 +1,8 @@
 package io.github.opendonationassistant.vk.webhook;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.github.opendonationassistant.commons.logging.ODALogger;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -20,7 +22,7 @@ import org.slf4j.LoggerFactory;
 @Controller
 public class VkWebhook {
 
-  private final Logger log = LoggerFactory.getLogger(VkWebhook.class);
+  private ODALogger log = new ODALogger(this);
   private final List<VkEventHandler> handlers;
   private final ObjectMapper mapper;
 
@@ -35,7 +37,7 @@ public class VkWebhook {
   @Secured(SecurityRule.IS_ANONYMOUS)
   @ExecuteOn(TaskExecutors.BLOCKING)
   public void listenVklive(String event) {
-    log.info("Received event: {}", event);
+    log.info("Received event", Map.of("event", event));
     try {
       var payload = mapper.readValue(event, Event.class);
       handlers
@@ -43,7 +45,7 @@ public class VkWebhook {
         .filter(it -> it.canHandle(payload.type()))
         .forEach(it -> it.handle(payload).join());
     } catch (Exception e) {
-      log.error("Failed to handle event", e.getMessage());
+      log.error("Failed to handle event", Map.of("error", e.getMessage()));
     }
   }
 
