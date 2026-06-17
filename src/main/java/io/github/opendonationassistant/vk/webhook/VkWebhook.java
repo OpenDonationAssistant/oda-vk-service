@@ -40,11 +40,13 @@ public class VkWebhook {
     log.info("Received event", Map.of("event", event));
     try {
       var payload = mapper.readValue(event, Event.class);
+      log.debug("Handling event", Map.of("event", payload));
       handlers
         .stream()
         .filter(it -> it.canHandle(payload.type()))
         .forEach(it -> it.handle(payload).join());
     } catch (Exception e) {
+      e.printStackTrace();
       log.error("Failed to handle event", Map.of("error", e.getMessage()));
     }
   }
