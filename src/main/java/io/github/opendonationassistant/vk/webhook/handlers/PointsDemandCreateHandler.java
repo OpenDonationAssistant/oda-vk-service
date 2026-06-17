@@ -57,7 +57,7 @@ public class PointsDemandCreateHandler implements VkEventHandler {
             part
               .keySet()
               .forEach(key -> {
-                if ("url".equals(key)) {
+                if ("link".equals(key)) {
                   Optional.ofNullable(part.get(key))
                     .map(p -> p.content())
                     .ifPresent(url ->

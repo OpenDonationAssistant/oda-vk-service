@@ -37,28 +37,28 @@ public interface VkDataClient {
   @Post("/v1/channel_point/reward/demand/accept")
   CompletableFuture<Void> acceptReward(
     @Header("Authorization") String token,
-    @QueryValue("channel_id") String channelId,
+    @QueryValue("channel_url") String channelUrl,
     @Body AcceptRewardRequest request
   );
 
   @Post("/v1/channel_point/reward/delete")
   CompletableFuture<Void> deleteReward(
     @Header("Authorization") String token,
-    @QueryValue("channel_id") String channelId,
+    @QueryValue("channel_url") String channelUrl,
     @QueryValue("reward_id") String rewardId
   );
 
   @Post("/v1/channel_point/reward/disable")
   CompletableFuture<Void> disableReward(
     @Header("Authorization") String token,
-    @QueryValue("channel_id") String channelId,
+    @QueryValue("channel_url") String channelUrl,
     @QueryValue("reward_id") String rewardId
   );
 
   @Post("/v1/channel_point/reward/enable")
   CompletableFuture<Void> enableReward(
     @Header("Authorization") String token,
-    @QueryValue("channel_id") String channelId,
+    @QueryValue("channel_url") String channelUrl,
     @QueryValue("reward_id") String rewardId
   );
 
