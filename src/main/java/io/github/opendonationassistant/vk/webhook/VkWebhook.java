@@ -34,14 +34,14 @@ public class VkWebhook {
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   @Secured(SecurityRule.IS_ANONYMOUS)
   @ExecuteOn(TaskExecutors.BLOCKING)
-  public void listenVklive(String message) {
-    log.info("Received event: {}", message);
+  public void listenVklive(String event) {
+    log.info("Received event: {}", event);
     try {
-      var event = mapper.readValue(message, Event.class);
+      var payload = mapper.readValue(event, Event.class);
       handlers
         .stream()
-        .filter(it -> it.canHandle(event.type()))
-        .forEach(it -> it.handle(event).join());
+        .filter(it -> it.canHandle(payload.type()))
+        .forEach(it -> it.handle(payload).join());
     } catch (Exception e) {
       log.error("Failed to handle event", e.getMessage());
     }
