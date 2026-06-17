@@ -2,6 +2,7 @@ package io.github.opendonationassistant.vk.webhook;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.http.MediaType;
+import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
@@ -31,7 +32,7 @@ public class VkWebhook {
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   @Secured(SecurityRule.IS_ANONYMOUS)
   @ExecuteOn(TaskExecutors.BLOCKING)
-  public void listenVklive(Event event) {
+  public void listenVklive(@Body Event event) {
     log.info("Received event: {}", event);
     handlers
       .stream()
