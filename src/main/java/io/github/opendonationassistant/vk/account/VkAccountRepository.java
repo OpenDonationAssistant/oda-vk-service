@@ -2,6 +2,7 @@ package io.github.opendonationassistant.vk.account;
 
 import com.fasterxml.uuid.Generators;
 import io.github.opendonationassistant.integration.VkClient;
+import io.github.opendonationassistant.vk.reward.RewardDataRepository;
 import jakarta.inject.Singleton;
 import java.util.List;
 
@@ -9,13 +10,16 @@ import java.util.List;
 public class VkAccountRepository {
 
   private final VkAccountDataRepository dataRepository;
+  private final RewardDataRepository rewardRepository;
   private final VkClient vk;
 
   public VkAccountRepository(
     VkAccountDataRepository dataRepository,
+    RewardDataRepository rewardRepository,
     VkClient vk
   ) {
     this.dataRepository = dataRepository;
+    this.rewardRepository = rewardRepository;
     this.vk = vk;
   }
 
@@ -58,6 +62,6 @@ public class VkAccountRepository {
   }
 
   private VkAccount convert(VkAccountData data) {
-    return new VkAccount(data, vk);
+    return new VkAccount(data, vk, rewardRepository);
   }
 }

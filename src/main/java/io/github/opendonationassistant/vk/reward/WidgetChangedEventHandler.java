@@ -27,25 +27,14 @@ public class WidgetChangedEventHandler {
     "changes.widgets",
     Map.of("media", WidgetChangedEventHandler.QUEUE)
   );
-  private static final String WIDGET_TYPE = "media";
 
   private ODALogger log = new ODALogger(this);
 
-  private final TimeBasedEpochGenerator uuid =
-    Generators.timeBasedEpochGenerator();
-  private final RewardRepository rewardRepository;
   private final VkAccountRepository accountRepository;
-  private final VkClient vk;
 
   @Inject
-  public WidgetChangedEventHandler(
-    RewardRepository rewardRepository,
-    VkAccountRepository accountRepository,
-    VkClient vk
-  ) {
-    this.rewardRepository = rewardRepository;
+  public WidgetChangedEventHandler(VkAccountRepository accountRepository) {
     this.accountRepository = accountRepository;
-    this.vk = vk;
   }
 
   @Queue("vk.config-music")
@@ -60,7 +49,7 @@ public class WidgetChangedEventHandler {
       log.debug("Missing widget");
       return;
     }
-    if (!WIDGET_TYPE.equals(widget.type())) {
+    if (!"media".equals(widget.type())) {
       log.debug("Wrong type");
       return;
     }
@@ -89,10 +78,9 @@ public class WidgetChangedEventHandler {
       return;
     }
     log.info("Updating reward for account", Map.of("recipientId", ownerId));
-    accounts.forEach(account -> {
-      // rewardRepository.deleteByRecipientId(recipientId);
-      processSystem(widget.id(), properties, "vklive", account);
-    });
+    accounts.forEach(account ->
+      processSystem(widget.id(), properties, "vklive", account)
+    );
   }
 
   private void processSystem(
@@ -130,33 +118,15 @@ public class WidgetChangedEventHandler {
       return;
     }
     log.debug("Creating reward");
-    final String createdId = vk
-      .createReward(
-        account.data().recipientId(),
-        account.data().refreshTokenId(),
-        account.data().channelUrl(),
-        new VkDataClient.RewardRequest(
-          new VkDataClient.RewardRequest.Reward(
-            // 0,
-            // null,
-            true,
-            // -1,
-            // -1,
-            title,
-            cost
-          )
-        )
-      )
-      .join();
-    rewardRepository.save(
-      new RewardData(
-        createdId,
-        widgetId,
-        account.data().recipientId(),
-        account.data().refreshTokenId(),
-        "music"
-      )
-    );
+    account
+      .getRewardsForWidget(widgetId)
+      .findFirst()
+      .ifPresentOrElse(
+        reward -> {
+          reward.update(title, cost);
+        },
+        () -> account.createReward(widgetId, "music", title, cost)
+      );
   }
 
   private boolean findBoolProperty(

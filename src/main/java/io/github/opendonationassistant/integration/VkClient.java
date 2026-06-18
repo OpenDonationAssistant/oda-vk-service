@@ -45,7 +45,7 @@ public class VkClient {
     String refreshTokenId,
     String channelUrl,
     VkDataClient.AcceptRewardRequest request
-  ){
+  ) {
     return token(recipientId, refreshTokenId)
       .map(token -> client.acceptReward(token, channelUrl, request))
       .orElse(CompletableFuture.completedFuture(null));
@@ -54,10 +54,12 @@ public class VkClient {
   public CompletableFuture<Void> editReward(
     String recipientId,
     String refreshTokenId,
+    String channelUrl,
+    String rewardId,
     VkDataClient.RewardRequest request
   ) {
     return token(recipientId, refreshTokenId)
-      .map(token -> client.editReward(token, request))
+      .map(token -> client.editReward(token, channelUrl, rewardId, request))
       .orElse(CompletableFuture.completedFuture(null));
   }
   // public CompletableFuture<Void> deleteReward(

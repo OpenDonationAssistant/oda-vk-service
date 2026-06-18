@@ -25,6 +25,8 @@ public interface VkDataClient {
   @Post("/v1/channel_point/reward/edit")
   CompletableFuture<Void> editReward(
     @Header("Authorization") String token,
+    @QueryValue("channel_url") String channelUrl,
+    @QueryValue("reward_id") String rewardId,
     @Body RewardRequest request
   );
 
