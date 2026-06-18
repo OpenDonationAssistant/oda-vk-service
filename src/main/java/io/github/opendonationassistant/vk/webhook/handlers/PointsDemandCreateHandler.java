@@ -40,6 +40,9 @@ public class PointsDemandCreateHandler implements VkEventHandler {
 
   @Override
   public CompletableFuture<?> handle(Event event) {
+    if (event.data().demand().status() != "pending") {
+      return CompletableFuture.completedFuture(null);
+    }
     final Optional<VkAccount> account = accountRepository
       .findByVKId(event.userId())
       .stream()

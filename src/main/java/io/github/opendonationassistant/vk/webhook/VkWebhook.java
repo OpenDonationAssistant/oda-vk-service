@@ -67,6 +67,7 @@ public class VkWebhook {
     Long id,
     User user,
     Reward reward,
+    String status,
     @JsonProperty("message_parts") List<Map<String, Part>> messageParts
   ) {}
 
