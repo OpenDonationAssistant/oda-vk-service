@@ -8,7 +8,7 @@ import io.micronaut.data.model.DataType;
 @MappedEntity("reward")
 public record RewardData(
   @Id String id,
-  String accountId,
+  @MappedProperty(type = DataType.UUID) String accountId,
   @MappedProperty(type = DataType.UUID) String widgetId,
   String type
 ) {}
