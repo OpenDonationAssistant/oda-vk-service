@@ -1,10 +1,6 @@
 package io.github.opendonationassistant.vk.reward;
 
-import com.fasterxml.uuid.Generators;
-import com.fasterxml.uuid.impl.TimeBasedEpochGenerator;
 import io.github.opendonationassistant.commons.logging.ODALogger;
-import io.github.opendonationassistant.integration.VkClient;
-import io.github.opendonationassistant.integration.VkDataClient;
 import io.github.opendonationassistant.rabbit.Exchange;
 import io.github.opendonationassistant.vk.account.VkAccount;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;

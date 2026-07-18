@@ -40,6 +40,10 @@ public class VkWebhook {
     log.info("Received event", Map.of("event", event));
     try {
       var payload = mapper.readValue(event, Event.class);
+      if (payload == null) {
+        log.warn("Received invalid event", Map.of("event", event));
+        return;
+      }
       log.debug("Handling event", Map.of("event", payload));
       handlers
         .stream()
