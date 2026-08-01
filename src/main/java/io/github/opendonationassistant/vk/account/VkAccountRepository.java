@@ -2,7 +2,9 @@ package io.github.opendonationassistant.vk.account;
 
 import com.fasterxml.uuid.Generators;
 import io.github.opendonationassistant.integration.VkClient;
+import io.github.opendonationassistant.rabbit.RabbitClient;
 import io.github.opendonationassistant.vk.reward.RewardDataRepository;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.List;
 
@@ -12,15 +14,18 @@ public class VkAccountRepository {
   private final VkAccountDataRepository dataRepository;
   private final RewardDataRepository rewardRepository;
   private final VkClient vk;
+  private final RabbitClient commands;
 
   public VkAccountRepository(
     VkAccountDataRepository dataRepository,
     RewardDataRepository rewardRepository,
-    VkClient vk
+    VkClient vk,
+    @Named("commands") RabbitClient commands
   ) {
     this.dataRepository = dataRepository;
     this.rewardRepository = rewardRepository;
     this.vk = vk;
+    this.commands = commands;
   }
 
   public VkAccount create(
@@ -62,6 +67,6 @@ public class VkAccountRepository {
   }
 
   private VkAccount convert(VkAccountData data) {
-    return new VkAccount(data, vk, rewardRepository);
+    return new VkAccount(data, vk, rewardRepository, commands);
   }
 }

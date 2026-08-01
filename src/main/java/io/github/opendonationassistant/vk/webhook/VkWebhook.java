@@ -16,8 +16,6 @@ import io.micronaut.serde.annotation.Serdeable;
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Controller
 public class VkWebhook {
@@ -63,8 +61,33 @@ public class VkWebhook {
     EventData data
   ) {}
 
-  @Serdeable 
-  public static record EventData(Demand demand){}
+  @Serdeable
+  public static record EventData(
+    Demand demand,
+    Follow follow,
+    Channel channel,
+    Owner owner
+  ) {}
+
+  @Serdeable
+  public static record Follow(
+    @JsonProperty("started_at") Long startedAt,
+    Follower follower
+  ) {}
+
+  @Serdeable
+  public static record Follower(
+    @JsonProperty("nick_color") Integer nickColor,
+    Long id,
+    String nick,
+    @JsonProperty("avatar_url") String avatarUrl
+  ) {}
+
+  @Serdeable
+  public static record Channel(Long id, String url) {}
+
+  @Serdeable
+  public static record Owner(Long id) {}
 
   @Serdeable
   public static record Demand(

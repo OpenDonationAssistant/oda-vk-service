@@ -43,49 +43,11 @@ public class PointsDemandCreateHandler implements VkEventHandler {
     if (!event.data().demand().status().equals("pending")) {
       return CompletableFuture.completedFuture(null);
     }
-    final Optional<VkAccount> account = accountRepository
+    return accountRepository
       .findByVKId(event.userId())
       .stream()
-      .findFirst();
-    var acceptRequest = new VkDataClient.AcceptRewardRequest(
-      List.of(new VkDataClient.Demand(event.data().demand().id()))
-    );
-    return account
-      .map(it -> {
-        event
-          .data()
-          .demand()
-          .messageParts()
-          .forEach(part -> {
-            part
-              .keySet()
-              .forEach(key -> {
-                if ("link".equals(key)) {
-                  Optional.ofNullable(part.get(key))
-                    .map(p -> p.content())
-                    .ifPresent(url ->
-                      commands.sendCommand(
-                        new AddMediaCommand(
-                          url,
-                          event.data().demand().user().nick(),
-                          it.data().recipientId(),
-                          "twitch"
-                        )
-                      )
-                    );
-                }
-              });
-          });
-        return it.acceptReward(acceptRequest);
-      })
+      .findFirst()
+      .map(it -> it.acceptReward(event))
       .orElseGet(() -> CompletableFuture.completedFuture(null));
   }
-
-  @Serdeable
-  public static record AddMediaCommand(
-    String url,
-    String requester,
-    String recipientId,
-    String system
-  ) {}
 }
