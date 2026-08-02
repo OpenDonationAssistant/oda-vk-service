@@ -13,9 +13,12 @@ import java.time.Instant;
 import java.util.List;
 
 import org.instancio.junit.Given;
+import org.instancio.junit.InstancioExtension;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 
+@ExtendWith(InstancioExtension.class)
 public class ChannelFollowCreateHandlerTest {
 
   VkAccountRepository accountRepository = mock(VkAccountRepository.class);
@@ -33,8 +36,8 @@ public class ChannelFollowCreateHandlerTest {
 
   @Test
   public void testSendingFollowEvent() throws Exception {
-    var account = account("29564758", "recipient-123");
-    when(accountRepository.findByVKId("29564758"))
+    var account = account("123123123", "recipient-123");
+    when(accountRepository.findByVKId("123123123"))
       .thenReturn(List.of(account));
 
     handler.handle(followEvent());
@@ -52,7 +55,7 @@ public class ChannelFollowCreateHandlerTest {
 
   @Test
   public void testNotSendingWithoutAccount() throws Exception {
-    when(accountRepository.findByVKId("29564758")).thenReturn(List.of());
+    when(accountRepository.findByVKId("123123123")).thenReturn(List.of());
 
     handler.handle(followEvent());
 
@@ -67,7 +70,7 @@ public class ChannelFollowCreateHandlerTest {
           "id",
           vkId,
           "stCarolas",
-          "mrwhiskanson",
+          "someuser",
           recipientId,
           "refresh-token-id"
         )
@@ -93,13 +96,16 @@ public class ChannelFollowCreateHandlerTest {
     var data = new VkWebhook.EventData(
       demand,
       follow,
-      new VkWebhook.Channel(8649069L, "mrwhiskanson"),
-      new VkWebhook.Owner(29564758L)
+      null,
+      null,
+      null,
+      new VkWebhook.Channel(12312311L, "someuser"),
+      new VkWebhook.Owner(123123123L)
     );
     return new VkWebhook.Event(
       "6987495",
       "channel_follow_create",
-      "29564758",
+      "123123123",
       data
     );
   }

@@ -16,6 +16,7 @@ import io.micronaut.serde.annotation.Serdeable;
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 @Controller
 public class VkWebhook {
@@ -65,6 +66,9 @@ public class VkWebhook {
   public static record EventData(
     Demand demand,
     Follow follow,
+    @Nullable @JsonProperty("stream_record") StreamRecord streamRecord,
+    @Nullable Stream stream,
+    @Nullable Subscription subscription,
     Channel channel,
     Owner owner
   ) {}
@@ -106,4 +110,56 @@ public class VkWebhook {
 
   @Serdeable
   public static record Part(String content) {}
+
+  @Serdeable
+  public static record StreamRecord(
+    String id,
+    @JsonProperty("stream_started_at") Long streamStartedAt,
+    Long duration,
+    @JsonProperty("process_state") String processState,
+    Category category,
+    String title,
+    @JsonProperty("video_id") String videoId,
+    @JsonProperty("source_urls") List<SourceUrl> sourceUrls,
+    @JsonProperty("created_at") Long createdAt,
+    @JsonProperty("preview_url") String previewUrl
+  ) {}
+
+  @Serdeable
+  public static record Category(String type, String title, String id) {}
+
+  @Serdeable
+  public static record SourceUrl(String type, String url) {}
+
+  @Serdeable
+  public static record Stream(
+    String id,
+    @JsonProperty("preview_url") String previewUrl,
+    @Nullable @JsonProperty("ended_at") Long endedAt,
+    @JsonProperty("started_at") Long startedAt,
+    String title,
+    @JsonProperty("video_id") String videoId,
+    Category category
+  ) {}
+
+  @Serdeable
+  public static record Subscription(
+    Level level,
+    @JsonProperty("days_duration") Long daysDuration,
+    Subscriber subscriber,
+    Long amount,
+    @JsonProperty("renewed_at") Long renewedAt,
+    @JsonProperty("started_at") Long startedAt
+  ) {}
+
+  @Serdeable
+  public static record Level(String name, Long price, String id) {}
+
+  @Serdeable
+  public static record Subscriber(
+    Long id,
+    String nick,
+    @JsonProperty("avatar_url") String avatarUrl,
+    @JsonProperty("nick_color") Integer nickColor
+  ) {}
 }
