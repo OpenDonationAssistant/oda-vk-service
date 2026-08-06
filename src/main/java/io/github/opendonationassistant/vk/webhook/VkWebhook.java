@@ -69,6 +69,7 @@ public class VkWebhook {
     @Nullable @JsonProperty("stream_record") StreamRecord streamRecord,
     @Nullable Stream stream,
     @Nullable Subscription subscription,
+    @Nullable Raid raid,
     Channel channel,
     Owner owner
   ) {}
@@ -161,5 +162,23 @@ public class VkWebhook {
     String nick,
     @JsonProperty("avatar_url") String avatarUrl,
     @JsonProperty("nick_color") Integer nickColor
+  ) {}
+
+  @Serdeable
+  public static record Raid(
+    @JsonProperty("raiders_count") Long raidersCount,
+    @JsonProperty("started_at") Long startedAt,
+    RaidSource source
+  ) {}
+
+  @Serdeable
+  public static record RaidSource(RaidOwner owner, Channel channel) {}
+
+  @Serdeable
+  public static record RaidOwner(
+    @JsonProperty("nick_color") Integer nickColor,
+    @JsonProperty("avatar_url") String avatarUrl,
+    String nick,
+    Long id
   ) {}
 }

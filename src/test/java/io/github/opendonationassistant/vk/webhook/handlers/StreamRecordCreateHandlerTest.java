@@ -87,7 +87,8 @@ public class StreamRecordCreateHandlerTest {
         null,
         null,
         null,
-        new VkWebhook.Channel(12312311L, "someuser"),
+                null,
+                new VkWebhook.Channel(12312311L, "someuser"),
         new VkWebhook.Owner(123123123L)
       )
     );
@@ -141,7 +142,8 @@ public class StreamRecordCreateHandlerTest {
       streamRecord,
       null,
       null,
-      new VkWebhook.Channel(12312311L, "someuser"),
+            null,
+            new VkWebhook.Channel(12312311L, "someuser"),
       new VkWebhook.Owner(123123123L)
     );
     return new VkWebhook.Event(

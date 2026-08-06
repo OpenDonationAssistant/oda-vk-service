@@ -84,7 +84,8 @@ public class StreamStopHandlerTest {
         null,
         null,
         null,
-        new VkWebhook.Channel(12312311L, "someuser"),
+                null,
+                new VkWebhook.Channel(12312311L, "someuser"),
         new VkWebhook.Owner(123123123L)
       )
     );
@@ -131,7 +132,8 @@ public class StreamStopHandlerTest {
       null,
       stream,
       null,
-      new VkWebhook.Channel(12312311L, "someuser"),
+            null,
+            new VkWebhook.Channel(12312311L, "someuser"),
       new VkWebhook.Owner(123123123L)
     );
     return new VkWebhook.Event(
