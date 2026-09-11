@@ -8,7 +8,9 @@ import io.github.opendonationassistant.vk.account.VkAccount;
 import io.github.opendonationassistant.vk.account.VkAccountData;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;
 import io.github.opendonationassistant.vk.events.VKLiveRaidEvent;
+import io.github.opendonationassistant.vk.metrics.VkMetrics;
 import io.github.opendonationassistant.vk.webhook.VkWebhook;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.List;
 
@@ -23,7 +25,12 @@ public class RaidStartHandlerTest {
 
   VkAccountRepository accountRepository = mock(VkAccountRepository.class);
   RabbitClient events = mock(RabbitClient.class);
-  RaidStartHandler handler = new RaidStartHandler(accountRepository, events);
+  VkMetrics metrics = new VkMetrics(new SimpleMeterRegistry());
+  RaidStartHandler handler = new RaidStartHandler(
+    accountRepository,
+    events,
+    metrics
+  );
 
   @Test
   public void testCanHandleRaidStart(@Given String randomType) {

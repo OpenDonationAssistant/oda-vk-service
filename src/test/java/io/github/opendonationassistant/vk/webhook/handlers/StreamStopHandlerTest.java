@@ -8,7 +8,9 @@ import io.github.opendonationassistant.vk.account.VkAccount;
 import io.github.opendonationassistant.vk.account.VkAccountData;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;
 import io.github.opendonationassistant.vk.events.VKLiveStreamEndedEvent;
+import io.github.opendonationassistant.vk.metrics.VkMetrics;
 import io.github.opendonationassistant.vk.webhook.VkWebhook;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.List;
 
@@ -23,7 +25,12 @@ public class StreamStopHandlerTest {
 
   VkAccountRepository accountRepository = mock(VkAccountRepository.class);
   RabbitClient events = mock(RabbitClient.class);
-  StreamStopHandler handler = new StreamStopHandler(accountRepository, events);
+  VkMetrics metrics = new VkMetrics(new SimpleMeterRegistry());
+  StreamStopHandler handler = new StreamStopHandler(
+    accountRepository,
+    events,
+    metrics
+  );
 
   @Test
   public void testCanHandleStreamStop(@Given String randomType) {

@@ -4,13 +4,13 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.opendonationassistant</groupId>
   <artifactId>oda-vk-service</artifactId>
-  <version>0.0.1</version>
+  <version>0.1.0</version>
   <packaging>${packaging}</packaging>
 
   <parent>
     <groupId>io.micronaut.platform</groupId>
     <artifactId>micronaut-parent</artifactId>
-    <version>5.0.2</version>
+    <version>5.1.0</version>
   </parent>
 
   <properties>
@@ -28,6 +28,7 @@
     <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
     <sonar.jacoco.reportPath>${project.basedir}/target/jacoco.exec</sonar.jacoco.reportPath>
     <sonar.language>java</sonar.language>
+    <oda.version>0.11.232</oda.version>
   </properties>
 
   <repositories>
@@ -43,7 +44,7 @@
     <dependency>
       <groupId>io.github.opendonationassistant</groupId>
       <artifactId>oda-rabbit-conf</artifactId>
-      <version>0.10.215</version>
+      <version>${oda.version}</version>
     </dependency>
 
     <dependency>

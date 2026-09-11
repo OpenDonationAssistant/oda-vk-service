@@ -8,7 +8,9 @@ import io.github.opendonationassistant.vk.account.VkAccount;
 import io.github.opendonationassistant.vk.account.VkAccountData;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;
 import io.github.opendonationassistant.vk.events.VKLiveStreamStartedEvent;
+import io.github.opendonationassistant.vk.metrics.VkMetrics;
 import io.github.opendonationassistant.vk.webhook.VkWebhook;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.List;
 
@@ -23,7 +25,12 @@ public class StreamStartHandlerTest {
 
   VkAccountRepository accountRepository = mock(VkAccountRepository.class);
   RabbitClient events = mock(RabbitClient.class);
-  StreamStartHandler handler = new StreamStartHandler(accountRepository, events);
+  VkMetrics metrics = new VkMetrics(new SimpleMeterRegistry());
+  StreamStartHandler handler = new StreamStartHandler(
+    accountRepository,
+    events,
+    metrics
+  );
 
   @Test
   public void testCanHandleStreamStart(@Given String randomType) {

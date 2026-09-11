@@ -3,6 +3,7 @@ package io.github.opendonationassistant.vk.webhook;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.github.opendonationassistant.commons.logging.ODALogger;
+import io.github.opendonationassistant.vk.metrics.VkMetrics;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
@@ -24,11 +25,17 @@ public class VkWebhook {
   private ODALogger log = new ODALogger(this);
   private final List<VkEventHandler> handlers;
   private final ObjectMapper mapper;
+  private final VkMetrics metrics;
 
   @Inject
-  public VkWebhook(List<VkEventHandler> handlers, ObjectMapper mapper) {
+  public VkWebhook(
+    List<VkEventHandler> handlers,
+    ObjectMapper mapper,
+    VkMetrics metrics
+  ) {
     this.handlers = handlers;
     this.mapper = mapper;
+    this.metrics = metrics;
   }
 
   @Post("/vklive/events")
@@ -41,16 +48,26 @@ public class VkWebhook {
       var payload = mapper.readValue(event, Event.class);
       if (payload == null) {
         log.warn("Received invalid event", Map.of("event", event));
+        metrics.eventInvalid(null);
         return;
       }
       log.debug("Handling event", Map.of("event", payload));
-      handlers
-        .stream()
-        .filter(it -> it.canHandle(payload.type()))
-        .forEach(it -> it.handle(payload).join());
+      metrics.eventReceived(payload.type());
+      var matchingHandlers =
+        handlers
+          .stream()
+          .filter(it -> it.canHandle(payload.type()))
+          .toList();
+      if (matchingHandlers.isEmpty()) {
+        metrics.eventUnhandled(payload.type());
+      } else {
+        metrics.eventHandled(payload.type());
+        matchingHandlers.forEach(it -> it.handle(payload).join());
+      }
     } catch (Exception e) {
       e.printStackTrace();
       log.error("Failed to handle event", Map.of("error", e.getMessage()));
+      metrics.eventInvalid(null);
     }
   }
 

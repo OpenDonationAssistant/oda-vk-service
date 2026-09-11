@@ -8,7 +8,9 @@ import io.github.opendonationassistant.vk.account.VkAccount;
 import io.github.opendonationassistant.vk.account.VkAccountData;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;
 import io.github.opendonationassistant.vk.events.VKLiveChannelSubscriptionEvent;
+import io.github.opendonationassistant.vk.metrics.VkMetrics;
 import io.github.opendonationassistant.vk.webhook.VkWebhook;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.List;
 
@@ -23,9 +25,11 @@ public class SubscriptionRenewHandlerTest {
 
   VkAccountRepository accountRepository = mock(VkAccountRepository.class);
   RabbitClient events = mock(RabbitClient.class);
+  VkMetrics metrics = new VkMetrics(new SimpleMeterRegistry());
   SubscriptionRenewHandler handler = new SubscriptionRenewHandler(
     accountRepository,
-    events
+    events,
+    metrics
   );
 
   @Test

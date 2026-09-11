@@ -17,7 +17,16 @@ import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.List;
 
-@OpenAPIDefinition(info = @Info(title = "oda-vk-service", version = "0.0"))
+@OpenAPIDefinition(
+  info = @Info(
+    title = "oda-vk-service",
+    version = "0.1.0",
+    license = @License(
+      name = "AGPL-3.0",
+      url = "https://www.gnu.org/licenses/agpl-3.0.en.html"
+    )
+  )
+)
 @Factory
 public class Application {
 

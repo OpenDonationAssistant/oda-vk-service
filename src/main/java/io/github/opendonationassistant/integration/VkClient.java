@@ -62,6 +62,20 @@ public class VkClient {
       .map(token -> client.editReward(token, channelUrl, rewardId, request))
       .orElse(CompletableFuture.completedFuture(null));
   }
+
+  public CompletableFuture<VkDataClient.ChannelInfo> getChannelInfo(
+    String recipientId,
+    String refreshTokenId,
+    String channelUrl
+  ) {
+    return token(recipientId, refreshTokenId)
+      .map(token ->
+        client
+          .getChannelInfo(token, channelUrl)
+          .thenApply(VkDataClient.DataWrapper::data)
+      )
+      .orElse(CompletableFuture.failedFuture(new RuntimeException("No token")));
+  }
   // public CompletableFuture<Void> deleteReward(
   //   String channelId,
   //   String rewardId

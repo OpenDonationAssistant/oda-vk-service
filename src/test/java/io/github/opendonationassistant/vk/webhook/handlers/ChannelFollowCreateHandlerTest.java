@@ -8,7 +8,9 @@ import io.github.opendonationassistant.vk.account.VkAccount;
 import io.github.opendonationassistant.vk.account.VkAccountData;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;
 import io.github.opendonationassistant.vk.events.VKLiveChannelFollowEvent;
+import io.github.opendonationassistant.vk.metrics.VkMetrics;
 import io.github.opendonationassistant.vk.webhook.VkWebhook;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.List;
 
@@ -23,9 +25,12 @@ public class ChannelFollowCreateHandlerTest {
 
   VkAccountRepository accountRepository = mock(VkAccountRepository.class);
   RabbitClient events = mock(RabbitClient.class);
+  SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+  VkMetrics metrics = new VkMetrics(meterRegistry);
   ChannelFollowCreateHandler handler = new ChannelFollowCreateHandler(
     accountRepository,
-    events
+    events,
+    metrics
   );
 
   @Test
@@ -60,6 +65,16 @@ public class ChannelFollowCreateHandlerTest {
     handler.handle(followEvent());
 
     verify(events, never()).sendEvent(any());
+    assertEquals(
+      1,
+      meterRegistry
+        .counter(
+          VkMetrics.EVENTS_NOACCOUNT_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          "channel_follow_create"
+        )
+        .count()
+    );
   }
 
   private VkAccount account(String vkId, String recipientId) {
