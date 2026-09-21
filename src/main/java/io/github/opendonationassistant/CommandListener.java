@@ -20,7 +20,7 @@ public class CommandListener {
     Map.of("command.LinkVkAccount", QUEUE, "command.UnlinkVkAccount", QUEUE)
   );
 
-  private MessageProcessor processor;
+  private final MessageProcessor processor;
 
   @Inject
   public CommandListener(MessageProcessor processor) {

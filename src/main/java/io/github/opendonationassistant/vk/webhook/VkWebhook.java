@@ -17,12 +17,13 @@ import io.micronaut.serde.annotation.Serdeable;
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.jspecify.annotations.Nullable;
 
 @Controller
 public class VkWebhook {
 
-  private ODALogger log = new ODALogger(this);
+  private final ODALogger log = new ODALogger(this);
   private final List<VkEventHandler> handlers;
   private final ObjectMapper mapper;
   private final VkMetrics metrics;
@@ -43,31 +44,61 @@ public class VkWebhook {
   @Secured(SecurityRule.IS_ANONYMOUS)
   @ExecuteOn(TaskExecutors.BLOCKING)
   public void listenVklive(String event) {
-    log.info("Received event", Map.of("event", event));
+    Event payload;
     try {
-      var payload = mapper.readValue(event, Event.class);
-      if (payload == null) {
-        log.warn("Received invalid event", Map.of("event", event));
-        metrics.eventInvalid(null);
-        return;
-      }
-      log.debug("Handling event", Map.of("event", payload));
-      metrics.eventReceived(payload.type());
-      var matchingHandlers =
-        handlers
-          .stream()
-          .filter(it -> it.canHandle(payload.type()))
-          .toList();
-      if (matchingHandlers.isEmpty()) {
-        metrics.eventUnhandled(payload.type());
-      } else {
-        metrics.eventHandled(payload.type());
-        matchingHandlers.forEach(it -> it.handle(payload).join());
-      }
+      payload = mapper.readValue(event, Event.class);
     } catch (Exception e) {
-      e.printStackTrace();
-      log.error("Failed to handle event", Map.of("error", e.getMessage()));
+      log.error("Failed to parse event", e);
       metrics.eventInvalid(null);
+      return;
+    }
+
+    if (payload == null) {
+      log.warn("Received invalid event", Map.of("reason", "empty payload"));
+      metrics.eventInvalid(null);
+      return;
+    }
+
+    var type = payload.type();
+    if (type == null || payload.data() == null) {
+      log.warn(
+        "Received invalid event",
+        Map.of("reason", "missing type or data")
+      );
+      metrics.eventInvalid(type);
+      return;
+    }
+
+    var id = payload.id();
+    log.info(
+      "Received event",
+      Map.of("type", type, "id", id == null ? VkMetrics.UNKNOWN : id)
+    );
+    log.debug("Handling event", Map.of("payload", payload));
+    metrics.eventReceived(type);
+
+    var matchingHandlers =
+      handlers
+        .stream()
+        .filter(it -> it.canHandle(type))
+        .toList();
+    if (matchingHandlers.isEmpty()) {
+      metrics.eventUnhandled(type);
+      return;
+    }
+
+    try {
+      var results = matchingHandlers
+        .stream()
+        .map(it -> it.handle(payload))
+        .toList();
+      CompletableFuture.allOf(
+        results.toArray(CompletableFuture<?>[]::new)
+      ).join();
+      metrics.eventHandled(type);
+    } catch (Exception e) {
+      log.error("Failed to handle event", e);
+      metrics.eventFailed(type);
     }
   }
 
@@ -81,19 +112,19 @@ public class VkWebhook {
 
   @Serdeable
   public static record EventData(
-    Demand demand,
+    @Nullable Demand demand,
     Follow follow,
     @Nullable @JsonProperty("stream_record") StreamRecord streamRecord,
     @Nullable Stream stream,
     @Nullable Subscription subscription,
     @Nullable Raid raid,
-    Channel channel,
-    Owner owner
+    @Nullable Channel channel,
+    @Nullable Owner owner
   ) {}
 
   @Serdeable
   public static record Follow(
-    @JsonProperty("started_at") Long startedAt,
+    @Nullable @JsonProperty("started_at") Long startedAt,
     Follower follower
   ) {}
 
@@ -114,10 +145,10 @@ public class VkWebhook {
   @Serdeable
   public static record Demand(
     Long id,
-    User user,
-    Reward reward,
-    String status,
-    @JsonProperty("message_parts") List<Map<String, Part>> messageParts
+    @Nullable User user,
+    @Nullable Reward reward,
+    @Nullable String status,
+    @Nullable @JsonProperty("message_parts") List<Map<String, Part>> messageParts
   ) {}
 
   @Serdeable
@@ -154,7 +185,7 @@ public class VkWebhook {
     String id,
     @JsonProperty("preview_url") String previewUrl,
     @Nullable @JsonProperty("ended_at") Long endedAt,
-    @JsonProperty("started_at") Long startedAt,
+    @Nullable @JsonProperty("started_at") Long startedAt,
     String title,
     @JsonProperty("video_id") String videoId,
     Category category
@@ -162,11 +193,11 @@ public class VkWebhook {
 
   @Serdeable
   public static record Subscription(
-    Level level,
+    @Nullable Level level,
     @JsonProperty("days_duration") Long daysDuration,
-    Subscriber subscriber,
+    @Nullable Subscriber subscriber,
     Long amount,
-    @JsonProperty("renewed_at") Long renewedAt,
+    @Nullable @JsonProperty("renewed_at") Long renewedAt,
     @JsonProperty("started_at") Long startedAt
   ) {}
 
@@ -184,7 +215,7 @@ public class VkWebhook {
   @Serdeable
   public static record Raid(
     @JsonProperty("raiders_count") Long raidersCount,
-    @JsonProperty("started_at") Long startedAt,
+    @Nullable @JsonProperty("started_at") Long startedAt,
     RaidSource source
   ) {}
 

@@ -152,4 +152,46 @@ public class VkMetricsTest {
         .count()
     );
   }
+
+  @Test
+  public void countsFailedEventsPerType() {
+    var registry = new SimpleMeterRegistry();
+    var metrics = new VkMetrics(registry);
+
+    metrics.eventFailed("channel_follow_create");
+    metrics.eventFailed("channel_follow_create");
+    metrics.eventFailed("raid_start");
+    metrics.eventFailed(null);
+
+    assertEquals(
+      2,
+      registry
+        .counter(
+          VkMetrics.EVENTS_FAILED_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          "channel_follow_create"
+        )
+        .count()
+    );
+    assertEquals(
+      1,
+      registry
+        .counter(
+          VkMetrics.EVENTS_FAILED_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          "raid_start"
+        )
+        .count()
+    );
+    assertEquals(
+      1,
+      registry
+        .counter(
+          VkMetrics.EVENTS_FAILED_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          VkMetrics.UNKNOWN
+        )
+        .count()
+    );
+  }
 }

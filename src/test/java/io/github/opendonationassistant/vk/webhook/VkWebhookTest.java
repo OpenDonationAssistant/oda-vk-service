@@ -158,6 +158,70 @@ public class VkWebhookTest {
         )
         .count()
     );
+    assertEquals(
+      0,
+      registry
+        .counter(
+          VkMetrics.EVENTS_FAILED_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          VkMetrics.UNKNOWN
+        )
+        .count()
+    );
+  }
+
+  @Test
+  public void countsFailedEventAndNotHandledWhenHandlerFails() throws Exception {
+    when(handler.canHandle(any())).thenReturn(true);
+    when(handler.handle(any(Event.class))).thenReturn(
+      CompletableFuture.failedFuture(new IOException("send failed"))
+    );
+    when(mapper.readValue(anyString(), eq(Event.class))).thenReturn(event());
+
+    VkWebhook webhook = new VkWebhook(List.of(handler), mapper, metrics);
+    webhook.listenVklive("{ \"event\": \"payload\" }");
+
+    verify(handler).handle(any(Event.class));
+    assertEquals(
+      1,
+      registry
+        .counter(
+          VkMetrics.EVENTS_RECEIVED_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          "channel_follow_create"
+        )
+        .count()
+    );
+    assertEquals(
+      1,
+      registry
+        .counter(
+          VkMetrics.EVENTS_FAILED_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          "channel_follow_create"
+        )
+        .count()
+    );
+    assertEquals(
+      0,
+      registry
+        .counter(
+          VkMetrics.EVENTS_HANDLED_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          "channel_follow_create"
+        )
+        .count()
+    );
+    assertEquals(
+      0,
+      registry
+        .counter(
+          VkMetrics.EVENTS_INVALID_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          VkMetrics.UNKNOWN
+        )
+        .count()
+    );
   }
 
   private static Event event() {

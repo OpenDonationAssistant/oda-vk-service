@@ -11,6 +11,7 @@ import jakarta.inject.Inject;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.jspecify.annotations.Nullable;
 
 @RabbitListener
@@ -24,7 +25,7 @@ public class WidgetChangedEventHandler {
     Map.of("media", WidgetChangedEventHandler.QUEUE)
   );
 
-  private ODALogger log = new ODALogger(this);
+  private final ODALogger log = new ODALogger(this);
 
   private final VkAccountRepository accountRepository;
 
@@ -74,12 +75,14 @@ public class WidgetChangedEventHandler {
       return;
     }
     log.info("Updating reward for account", Map.of("recipientId", ownerId));
-    accounts.forEach(account ->
-      processSystem(widget.id(), properties, "vklive", account)
-    );
+    var updates = accounts
+      .stream()
+      .map(account -> processSystem(widget.id(), properties, "vklive", account))
+      .toArray(CompletableFuture<?>[]::new);
+    CompletableFuture.allOf(updates).join();
   }
 
-  private void processSystem(
+  private CompletableFuture<Void> processSystem(
     String widgetId,
     List<WidgetProperty> properties,
     String system,
@@ -92,7 +95,7 @@ public class WidgetChangedEventHandler {
     log.info("music-" + system + "-request-title: " + enabled);
     if (!enabled) {
       log.debug("System is disabled");
-      return;
+      return CompletableFuture.completedFuture(null);
     }
 
     var title = findStringProperty(
@@ -102,7 +105,7 @@ public class WidgetChangedEventHandler {
     log.info("music-" + system + "-request-title: " + title);
     if (title == null) {
       log.debug("Missing title");
-      return;
+      return CompletableFuture.completedFuture(null);
     }
     Integer cost = findIntProperty(
       properties,
@@ -111,18 +114,27 @@ public class WidgetChangedEventHandler {
     log.info("music-" + system + "-request-cost: " + cost);
     if (cost == null) {
       log.debug("Missing cost");
-      return;
+      return CompletableFuture.completedFuture(null);
     }
     log.debug("Creating reward");
-    account
+    var recipientId = account.data().recipientId();
+    return account
       .getRewardsForWidget(widgetId)
       .findFirst()
-      .ifPresentOrElse(
-        reward -> {
-          reward.update(title, cost);
-        },
-        () -> account.createReward(widgetId, "music", title, cost)
-      );
+      .map(reward -> reward.update(title, cost))
+      .orElseGet(() -> account.createReward(widgetId, "music", title, cost))
+      .exceptionally(error -> {
+        log.error(
+          "Failed to sync reward for widget %s and recipient %s".formatted(
+              widgetId,
+              recipientId
+            ),
+          error instanceof Exception exception
+            ? exception
+            : new RuntimeException(error)
+        );
+        return null;
+      });
   }
 
   private boolean findBoolProperty(

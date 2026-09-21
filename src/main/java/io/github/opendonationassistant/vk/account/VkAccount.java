@@ -16,6 +16,8 @@ import java.util.stream.Stream;
 @Serdeable
 public class VkAccount {
 
+  public static final String VK_LIVE_SYSTEM = "vklive";
+
   private final VkAccountData data;
   private final VkClient vk;
   private final RewardDataRepository rewardRepository;
@@ -38,14 +40,20 @@ public class VkAccount {
   }
 
   public CompletableFuture<Void> acceptReward(VkWebhook.Event event) {
-    var rewardId = event.data().demand().reward().id();
+    var demand = event.data().demand();
+    if (demand == null) {
+      return CompletableFuture.completedFuture(null);
+    }
+    var reward = demand.reward();
+    var user = demand.user();
+    var messageParts = demand.messageParts();
+    if (reward == null || user == null || messageParts == null) {
+      return CompletableFuture.completedFuture(null);
+    }
     return rewardRepository
-      .findById(rewardId)
+      .findById(reward.id())
       .flatMap(rewardData ->
-        event
-          .data()
-          .demand()
-          .messageParts()
+        messageParts
           .stream()
           .flatMap(part ->
             part
@@ -64,13 +72,13 @@ public class VkAccount {
         commands.sendCommand(
           new AddMediaCommand(
             link,
-            event.data().demand().user().nick(),
+            user.nick(),
             data().recipientId(),
-            "twitch"
+            VK_LIVE_SYSTEM
           )
         );
         var acceptRequest = new VkDataClient.AcceptRewardRequest(
-          List.of(new VkDataClient.Demand(event.data().demand().id()))
+          List.of(new VkDataClient.Demand(demand.id()))
         );
         return acceptReward(acceptRequest);
       })
