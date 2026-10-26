@@ -3,6 +3,7 @@ package io.github.opendonationassistant.vk.webhook.handlers;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;
 import io.github.opendonationassistant.vk.metrics.VkMetrics;
 import io.github.opendonationassistant.vk.webhook.VkEventHandler;
+import io.github.opendonationassistant.vk.webhook.VkEventType;
 import io.github.opendonationassistant.vk.webhook.VkWebhook.Event;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -26,8 +27,8 @@ public class PointsDemandCreateHandler implements VkEventHandler {
   }
 
   @Override
-  public boolean canHandle(String type) {
-    return "channel_points_reward_demand_create".equals(type);
+  public VkEventType type() {
+    return VkEventType.CHANNEL_POINTS_REWARD_DEMAND_CREATE;
   }
 
   @Override

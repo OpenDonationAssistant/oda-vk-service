@@ -17,7 +17,14 @@ public class CommandListener {
     new io.github.opendonationassistant.rabbit.Queue(QUEUE_NAME);
   public static final Exchange BINDING = Exchange.Exchange(
     "commands",
-    Map.of("command.LinkVkAccount", QUEUE, "command.UnlinkVkAccount", QUEUE)
+    Map.of(
+      "command.LinkVkAccount",
+      QUEUE,
+      "command.UnlinkVkAccount",
+      QUEUE,
+      "command.SendVKLiveMessageCommand",
+      QUEUE
+    )
   );
 
   private final MessageProcessor processor;

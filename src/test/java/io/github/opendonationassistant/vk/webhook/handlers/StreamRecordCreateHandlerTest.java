@@ -1,41 +1,35 @@
 package io.github.opendonationassistant.vk.webhook.handlers;
 
+import static io.github.opendonationassistant.vk.webhook.handlers.HandlerTestFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import io.github.opendonationassistant.rabbit.RabbitClient;
-import io.github.opendonationassistant.vk.account.VkAccount;
-import io.github.opendonationassistant.vk.account.VkAccountData;
 import io.github.opendonationassistant.vk.account.VkAccountRepository;
 import io.github.opendonationassistant.vk.events.VKLiveStreamRecordEvent;
 import io.github.opendonationassistant.vk.metrics.VkMetrics;
+import io.github.opendonationassistant.vk.webhook.VkEventType;
 import io.github.opendonationassistant.vk.webhook.VkWebhook;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.List;
 
-import org.instancio.junit.Given;
-import org.instancio.junit.InstancioExtension;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 
-@ExtendWith(InstancioExtension.class)
 public class StreamRecordCreateHandlerTest {
 
   VkAccountRepository accountRepository = mock(VkAccountRepository.class);
   RabbitClient events = mock(RabbitClient.class);
   VkMetrics metrics = new VkMetrics(new SimpleMeterRegistry());
   StreamRecordCreateHandler handler = new StreamRecordCreateHandler(
-    accountRepository,
-    events,
-    metrics
+    new AccountEventForwarder(accountRepository, events, metrics)
   );
 
   @Test
-  public void testCanHandleStreamRecordNew(@Given String randomType) {
-    assertTrue(handler.canHandle("channel_stream_record_new"));
-    assertFalse(handler.canHandle(randomType));
+  public void testTypeIsStreamRecordNew() {
+    assertEquals(VkEventType.CHANNEL_STREAM_RECORD_NEW, handler.type());
   }
 
   @Test
@@ -44,7 +38,7 @@ public class StreamRecordCreateHandlerTest {
     when(accountRepository.findByVKId("123123123"))
       .thenReturn(List.of(account));
 
-    handler.handle(streamRecordEvent());
+    assertNull(handler.handle(streamRecordEvent()).join());
 
     var captor = ArgumentCaptor.forClass(VKLiveStreamRecordEvent.class);
 
@@ -70,7 +64,7 @@ public class StreamRecordCreateHandlerTest {
   public void testNotSendingWithoutAccount() throws Exception {
     when(accountRepository.findByVKId("123123123")).thenReturn(List.of());
 
-    handler.handle(streamRecordEvent());
+    assertNull(handler.handle(streamRecordEvent()).join());
 
     verify(events, never()).sendEvent(any());
   }
@@ -91,31 +85,63 @@ public class StreamRecordCreateHandlerTest {
         null,
         null,
         null,
-                null,
-                new VkWebhook.Channel(12312311L, "someuser"),
+        null,
+        new VkWebhook.Channel(12312311L, "someuser"),
         new VkWebhook.Owner(123123123L)
       )
     );
 
-    handler.handle(event);
+    assertNull(handler.handle(event).join());
 
     verify(events, never()).sendEvent(any());
   }
 
-  private VkAccount account(String vkId, String recipientId) {
-    var account = mock(VkAccount.class);
-    when(account.data())
-      .thenReturn(
-        new VkAccountData(
-          "id",
-          vkId,
-          "stCarolas",
-          "someuser",
-          recipientId,
-          "refresh-token-id"
-        )
-      );
-    return account;
+  @Test
+  public void testNotSendingWithoutStreamStartedAt() throws Exception {
+    stubAccount();
+    assertNull(handler.handle(eventWith(streamRecord(null))).join());
+    verify(events, never()).sendEvent(any());
+  }
+
+  private void stubAccount() {
+    var account = account("123123123", "recipient-123");
+    when(accountRepository.findByVKId("123123123"))
+      .thenReturn(List.of(account));
+  }
+
+  private VkWebhook.Event eventWith(
+    VkWebhook.@Nullable StreamRecord streamRecord
+  ) {
+    return new VkWebhook.Event(
+      "7029219",
+      "channel_stream_record_new",
+      "123123123",
+      new VkWebhook.EventData(
+        demand(),
+        follow(),
+        streamRecord,
+        null,
+        null,
+        null,
+        new VkWebhook.Channel(12312311L, "someuser"),
+        new VkWebhook.Owner(123123123L)
+      )
+    );
+  }
+
+  private VkWebhook.StreamRecord streamRecord(@Nullable Long streamStartedAt) {
+    return new VkWebhook.StreamRecord(
+      "6a1f57e6-bb2a-472a-9310-0d65988e1c66",
+      streamStartedAt,
+      20768L,
+      "done",
+      category(),
+      "stream title",
+      "16068645898020",
+      List.of(),
+      1785598898L,
+      "https://preview"
+    );
   }
 
   private VkWebhook.Event streamRecordEvent() {
@@ -146,8 +172,8 @@ public class StreamRecordCreateHandlerTest {
       streamRecord,
       null,
       null,
-            null,
-            new VkWebhook.Channel(12312311L, "someuser"),
+      null,
+      new VkWebhook.Channel(12312311L, "someuser"),
       new VkWebhook.Owner(123123123L)
     );
     return new VkWebhook.Event(
@@ -158,20 +184,4 @@ public class StreamRecordCreateHandlerTest {
     );
   }
 
-  private VkWebhook.Demand demand() {
-    return new VkWebhook.Demand(
-      8433849L,
-      new VkWebhook.User("stCarolas"),
-      new VkWebhook.Reward("39a919a7-fd10-4ece-9606-dde43b595fc9"),
-      "pending",
-      List.of()
-    );
-  }
-
-  private VkWebhook.Follow follow() {
-    return new VkWebhook.Follow(
-      1785489039L,
-      new VkWebhook.Follower(15, 19219592L, "OneTuz", "https://avatar")
-    );
-  }
 }

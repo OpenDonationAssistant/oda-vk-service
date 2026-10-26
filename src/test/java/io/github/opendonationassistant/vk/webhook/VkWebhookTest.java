@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,7 +35,7 @@ public class VkWebhookTest {
 
   @Test
   public void countsReceivedAndHandledEvent() throws Exception {
-    when(handler.canHandle(any())).thenReturn(true);
+    when(handler.type()).thenReturn(VkEventType.CHANNEL_FOLLOW_CREATE);
     when(handler.handle(any(Event.class))).thenReturn(
       CompletableFuture.completedFuture(null)
     );
@@ -43,7 +44,7 @@ public class VkWebhookTest {
     VkWebhook webhook = new VkWebhook(List.of(handler), mapper, metrics);
     webhook.listenVklive("{ \"event\": \"payload\" }");
 
-    verify(handler).canHandle("channel_follow_create");
+    verify(handler).type();
     verify(handler).handle(any(Event.class));
     assertEquals(
       1,
@@ -79,13 +80,13 @@ public class VkWebhookTest {
 
   @Test
   public void countsUnhandledEvent() throws Exception {
-    when(handler.canHandle(any())).thenReturn(false);
+    when(handler.type()).thenReturn(VkEventType.RAID_START);
     when(mapper.readValue(anyString(), eq(Event.class))).thenReturn(event());
 
     VkWebhook webhook = new VkWebhook(List.of(handler), mapper, metrics);
     webhook.listenVklive("{ \"event\": \"payload\" }");
 
-    verify(handler).canHandle("channel_follow_create");
+    verify(handler).type();
     assertEquals(
       1,
       registry
@@ -119,8 +120,55 @@ public class VkWebhookTest {
   }
 
   @Test
+  public void countsUnhandledEventForUnknownType() throws Exception {
+    when(handler.type()).thenReturn(VkEventType.RAID_START);
+    when(mapper.readValue(anyString(), eq(Event.class))).thenReturn(
+      new Event(
+        "6987495",
+        "channel_donation_create",
+        "123123123",
+        event().data()
+      )
+    );
+
+    VkWebhook webhook = new VkWebhook(List.of(handler), mapper, metrics);
+    webhook.listenVklive("{ \"event\": \"payload\" }");
+
+    verify(handler, never()).handle(any(Event.class));
+    assertEquals(
+      1,
+      registry
+        .counter(
+          VkMetrics.EVENTS_RECEIVED_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          "channel_donation_create"
+        )
+        .count()
+    );
+    assertEquals(
+      1,
+      registry
+        .counter(
+          VkMetrics.EVENTS_UNHANDLED_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          "channel_donation_create"
+        )
+        .count()
+    );
+    assertEquals(
+      0,
+      registry
+        .counter(
+          VkMetrics.EVENTS_HANDLED_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          "channel_donation_create"
+        )
+        .count()
+    );
+  }
+
+  @Test
   public void countsInvalidEventOnNullPayload() throws Exception {
-    when(handler.canHandle(any())).thenReturn(false);
     when(mapper.readValue(anyString(), eq(Event.class))).thenReturn(null);
 
     VkWebhook webhook = new VkWebhook(List.of(), mapper, metrics);
@@ -140,7 +188,6 @@ public class VkWebhookTest {
 
   @Test
   public void countsInvalidEventOnParseFailure() throws Exception {
-    when(handler.canHandle(any())).thenReturn(false);
     when(mapper.readValue(anyString(), eq(Event.class))).thenThrow(
       new IOException("malformed")
     );
@@ -172,7 +219,7 @@ public class VkWebhookTest {
 
   @Test
   public void countsFailedEventAndNotHandledWhenHandlerFails() throws Exception {
-    when(handler.canHandle(any())).thenReturn(true);
+    when(handler.type()).thenReturn(VkEventType.CHANNEL_FOLLOW_CREATE);
     when(handler.handle(any(Event.class))).thenReturn(
       CompletableFuture.failedFuture(new IOException("send failed"))
     );

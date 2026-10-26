@@ -59,31 +59,34 @@ public class VkWebhook {
       return;
     }
 
-    var type = payload.type();
-    if (type == null || payload.data() == null) {
+    var payloadType = payload.type();
+    if (payloadType == null || payload.data() == null) {
       log.warn(
         "Received invalid event",
         Map.of("reason", "missing type or data")
       );
-      metrics.eventInvalid(type);
+      metrics.eventInvalid(payloadType);
       return;
     }
 
     var id = payload.id();
     log.info(
       "Received event",
-      Map.of("type", type, "id", id == null ? VkMetrics.UNKNOWN : id)
+      Map.of("type", payloadType, "id", id == null ? VkMetrics.UNKNOWN : id)
     );
     log.debug("Handling event", Map.of("payload", payload));
-    metrics.eventReceived(type);
+    metrics.eventReceived(payloadType);
+
+    var eventType = VkEventType.fromWireName(payloadType);
+    if (eventType == null) {
+      metrics.eventUnhandled(payloadType);
+      return;
+    }
 
     var matchingHandlers =
-      handlers
-        .stream()
-        .filter(it -> it.canHandle(type))
-        .toList();
+      handlers.stream().filter(it -> it.type() == eventType).toList();
     if (matchingHandlers.isEmpty()) {
-      metrics.eventUnhandled(type);
+      metrics.eventUnhandled(payloadType);
       return;
     }
 
@@ -95,10 +98,10 @@ public class VkWebhook {
       CompletableFuture.allOf(
         results.toArray(CompletableFuture<?>[]::new)
       ).join();
-      metrics.eventHandled(type);
+      metrics.eventHandled(payloadType);
     } catch (Exception e) {
       log.error("Failed to handle event", e);
-      metrics.eventFailed(type);
+      metrics.eventFailed(payloadType);
     }
   }
 
@@ -113,7 +116,7 @@ public class VkWebhook {
   @Serdeable
   public static record EventData(
     @Nullable Demand demand,
-    Follow follow,
+    @Nullable Follow follow,
     @Nullable @JsonProperty("stream_record") StreamRecord streamRecord,
     @Nullable Stream stream,
     @Nullable Subscription subscription,
@@ -125,7 +128,7 @@ public class VkWebhook {
   @Serdeable
   public static record Follow(
     @Nullable @JsonProperty("started_at") Long startedAt,
-    Follower follower
+    @Nullable Follower follower
   ) {}
 
   @Serdeable
@@ -163,7 +166,7 @@ public class VkWebhook {
   @Serdeable
   public static record StreamRecord(
     String id,
-    @JsonProperty("stream_started_at") Long streamStartedAt,
+    @Nullable @JsonProperty("stream_started_at") Long streamStartedAt,
     Long duration,
     @JsonProperty("process_state") String processState,
     Category category,
@@ -216,11 +219,14 @@ public class VkWebhook {
   public static record Raid(
     @JsonProperty("raiders_count") Long raidersCount,
     @Nullable @JsonProperty("started_at") Long startedAt,
-    RaidSource source
+    @Nullable RaidSource source
   ) {}
 
   @Serdeable
-  public static record RaidSource(RaidOwner owner, Channel channel) {}
+  public static record RaidSource(
+    @Nullable RaidOwner owner,
+    Channel channel
+  ) {}
 
   @Serdeable
   public static record RaidOwner(

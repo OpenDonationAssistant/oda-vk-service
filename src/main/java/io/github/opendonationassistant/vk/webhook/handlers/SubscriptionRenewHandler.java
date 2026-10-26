@@ -1,77 +1,54 @@
 package io.github.opendonationassistant.vk.webhook.handlers;
 
-import io.github.opendonationassistant.rabbit.RabbitClient;
-import io.github.opendonationassistant.vk.account.VkAccountRepository;
 import io.github.opendonationassistant.vk.events.VKLiveChannelSubscriptionEvent;
-import io.github.opendonationassistant.vk.metrics.VkMetrics;
 import io.github.opendonationassistant.vk.webhook.VkEventHandler;
+import io.github.opendonationassistant.vk.webhook.VkEventType;
 import io.github.opendonationassistant.vk.webhook.VkWebhook.Event;
 import jakarta.inject.Inject;
-import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
+import org.jspecify.annotations.Nullable;
 
 @Singleton
 public class SubscriptionRenewHandler implements VkEventHandler {
 
-  private final VkAccountRepository accountRepository;
-  private final RabbitClient events;
-  private final VkMetrics metrics;
+  private final AccountEventForwarder forwarder;
 
   @Inject
-  public SubscriptionRenewHandler(
-    VkAccountRepository accountRepository,
-    @Named("vklive") RabbitClient events,
-    VkMetrics metrics
-  ) {
-    this.accountRepository = accountRepository;
-    this.events = events;
-    this.metrics = metrics;
+  public SubscriptionRenewHandler(AccountEventForwarder forwarder) {
+    this.forwarder = forwarder;
   }
 
   @Override
-  public boolean canHandle(String type) {
-    return "channel_subscription_renew".equals(type);
+  public VkEventType type() {
+    return VkEventType.CHANNEL_SUBSCRIPTION_RENEW;
   }
 
   @Override
   public CompletableFuture<?> handle(Event event) {
+    return forwarder.forward(event, eventFactory(event));
+  }
+
+  private static @Nullable AccountEventFactory eventFactory(Event event) {
     var subscription = event.data().subscription();
     if (subscription == null) {
-      return CompletableFuture.completedFuture(null);
+      return null;
     }
     var subscriber = subscription.subscriber();
     var renewedAt = subscription.renewedAt();
     var level = subscription.level();
     if (subscriber == null || renewedAt == null || level == null) {
-      return CompletableFuture.completedFuture(null);
+      return null;
     }
-    return accountRepository
-      .findByVKId(event.userId())
-      .stream()
-      .findFirst()
-      .map(account -> {
-        try {
-          events.sendEvent(
-            new VKLiveChannelSubscriptionEvent(
-              event.id(),
-              account.data().recipientId(),
-              subscriber.nick(),
-              level.name(),
-              subscription.amount(),
-              Instant.ofEpochSecond(renewedAt)
-            )
-          );
-          return CompletableFuture.<Void>completedFuture(null);
-        } catch (IOException e) {
-          return CompletableFuture.<Void>failedFuture(e);
-        }
-      })
-      .orElseGet(() -> {
-        metrics.eventNoAccount(event.type());
-        return CompletableFuture.<Void>completedFuture(null);
-      });
+    return recipientId ->
+      new VKLiveChannelSubscriptionEvent(
+        event.id(),
+        recipientId,
+        subscriber.nick(),
+        level.name(),
+        subscription.amount(),
+        Instant.ofEpochSecond(renewedAt)
+      );
   }
 }
