@@ -1,10 +1,9 @@
 package io.github.opendonationassistant.vk.account;
 
 import com.fasterxml.uuid.Generators;
-import io.github.opendonationassistant.integration.VkClient;
-import io.github.opendonationassistant.rabbit.RabbitClient;
+import io.github.opendonationassistant.integration.MediaRPC;
+import io.github.opendonationassistant.integration.VkClientFactory;
 import io.github.opendonationassistant.vk.reward.RewardDataRepository;
-import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.List;
 
@@ -13,19 +12,19 @@ public class VkAccountRepository {
 
   private final VkAccountDataRepository dataRepository;
   private final RewardDataRepository rewardRepository;
-  private final VkClient vk;
-  private final RabbitClient commands;
+  private final VkClientFactory vkClientFactory;
+  private final MediaRPC media;
 
   public VkAccountRepository(
     VkAccountDataRepository dataRepository,
     RewardDataRepository rewardRepository,
-    VkClient vk,
-    @Named("commands") RabbitClient commands
+    VkClientFactory vkClientFactory,
+    MediaRPC media
   ) {
     this.dataRepository = dataRepository;
     this.rewardRepository = rewardRepository;
-    this.vk = vk;
-    this.commands = commands;
+    this.vkClientFactory = vkClientFactory;
+    this.media = media;
   }
 
   public VkAccount create(
@@ -67,6 +66,6 @@ public class VkAccountRepository {
   }
 
   private VkAccount convert(VkAccountData data) {
-    return new VkAccount(data, vk, rewardRepository, commands);
+    return new VkAccount(data, vkClientFactory, rewardRepository, media);
   }
 }

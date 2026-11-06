@@ -1,7 +1,6 @@
 package io.github.opendonationassistant.vk.webhook;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import io.github.opendonationassistant.commons.logging.ODALogger;
 import io.github.opendonationassistant.vk.metrics.VkMetrics;
 import io.micronaut.http.MediaType;
@@ -83,8 +82,10 @@ public class VkWebhook {
       return;
     }
 
-    var matchingHandlers =
-      handlers.stream().filter(it -> it.type() == eventType).toList();
+    var matchingHandlers = handlers
+      .stream()
+      .filter(it -> it.type() == eventType)
+      .toList();
     if (matchingHandlers.isEmpty()) {
       metrics.eventUnhandled(payloadType);
       return;
@@ -151,11 +152,13 @@ public class VkWebhook {
     @Nullable User user,
     @Nullable Reward reward,
     @Nullable String status,
-    @Nullable @JsonProperty("message_parts") List<Map<String, Part>> messageParts
+    @Nullable @JsonProperty("message_parts") List<
+      Map<String, Part>
+    > messageParts
   ) {}
 
   @Serdeable
-  public static record User(String nick) {}
+  public static record User(String nick, @Nullable Long id) {}
 
   @Serdeable
   public static record Reward(String id) {}
@@ -223,10 +226,7 @@ public class VkWebhook {
   ) {}
 
   @Serdeable
-  public static record RaidSource(
-    @Nullable RaidOwner owner,
-    Channel channel
-  ) {}
+  public static record RaidSource(@Nullable RaidOwner owner, Channel channel) {}
 
   @Serdeable
   public static record RaidOwner(

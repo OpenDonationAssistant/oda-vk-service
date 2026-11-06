@@ -8,17 +8,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.Map;
 
-/**
- * Consumes {@code SendVKLiveMessageCommand}. Wiring is in place (exchange
- * binding, handler registration, payload contract) but the outbound transport
- * is a TODO.
- *
- * <p>VK Live (vkvideo.ru) does not document a public API for sending stream-chat
- * messages. VK's {@code messages.send} belongs to the vk.com messenger, not the
- * stream chat, so it is not used here. The real transport (an undocumented
- * websocket/session protocol) must be reverse-engineered and isolated behind this
- * handler before the action can actually deliver a message.
- */
 @Singleton
 public class SendChatMessageHandler
   extends AbstractMessageHandler<
@@ -38,7 +27,8 @@ public class SendChatMessageHandler
   // here once the token is resolved via TokenRPC from recipientId.
   @Override
   public void handle(SendVKLiveMessageCommand message) {
-    // TODO(chat): implement VK Live chat send transport.
+    // TODO(chat): resolve the account and forward the message through
+    // VkClient#sendChatMessage.
     log.warn(
       "SendVKLiveMessageCommand is wired but not implemented yet",
       Map.of(

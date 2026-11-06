@@ -16,6 +16,8 @@ public class VkMetrics {
     "vk.events.unhandled";
   public static final String EVENTS_INVALID_METRIC_NAME = "vk.events.invalid";
   public static final String EVENTS_NOACCOUNT_METRIC_NAME = "vk.events.noaccount";
+  public static final String EVENTS_UNKNOWN_REWARD_METRIC_NAME =
+    "vk.events.unknownreward";
   public static final String EVENTS_FAILED_METRIC_NAME = "vk.events.failed";
   public static final String TYPE_TAG = "type";
   public static final String UNKNOWN = "unknown";
@@ -45,6 +47,10 @@ public class VkMetrics {
 
   public void eventNoAccount(@Nullable String type) {
     counter(EVENTS_NOACCOUNT_METRIC_NAME, type).increment();
+  }
+
+  public void eventUnknownReward(@Nullable String type) {
+    counter(EVENTS_UNKNOWN_REWARD_METRIC_NAME, type).increment();
   }
 
   public void eventFailed(@Nullable String type) {

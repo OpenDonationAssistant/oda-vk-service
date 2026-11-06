@@ -36,7 +36,7 @@ final class HandlerTestFixtures {
   static VkWebhook.Demand demand() {
     return new VkWebhook.Demand(
       8433849L,
-      new VkWebhook.User("stCarolas"),
+      new VkWebhook.User("stCarolas", 15346984L),
       new VkWebhook.Reward("39a919a7-fd10-4ece-9606-dde43b595fc9"),
       "pending",
       List.of()

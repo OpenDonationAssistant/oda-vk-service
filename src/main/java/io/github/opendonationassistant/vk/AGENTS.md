@@ -25,7 +25,7 @@ vk/
 ├── metrics/
 │   └── VkMetrics.java              # Micrometer counters (received/handled/unhandled/invalid/noaccount)
 ├── reward/
-│   ├── Reward.java                 # Domain entity (calls VkClient for API ops)
+│   ├── VkReward.java               # Reward aggregate: media request, demand accept/decline
 │   ├── RewardData.java             # @MappedEntity persistence record
 │   ├── RewardDataRepository.java   # Micronaut Data JDBC repository
 │   └── WidgetChangedEventHandler.java # RabbitMQ listener for widget config changes
@@ -48,7 +48,7 @@ vk/
 |------|----------|-------|
 | Add new VK webhook event | `webhook/handlers/` | Create handler implementing `VkEventHandler`, add to `VkWebhook` dispatch |
 | Modify account lifecycle | `account/VkAccount.java` | Domain aggregate with reward + command logic |
-| Add reward operation | `reward/Reward.java` | Calls `VkClient` for API operations |
+| Add reward operation | `reward/VkReward.java` | Handles media request and demand accept/decline |
 | Change event DTO shape | `events/VKLive*Event.java` | Outbound records sent via RabbitMQ |
 | Modify widget config handling | `reward/WidgetChangedEventHandler.java` | Parses widget properties, creates/updates rewards |
 

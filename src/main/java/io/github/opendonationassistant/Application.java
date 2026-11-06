@@ -52,12 +52,6 @@ public class Application {
   }
 
   @Singleton
-  @Named("commands")
-  public RabbitClient commandsFacade(ChannelPool pool, ObjectMapper mapper) {
-    return new RabbitClient(pool, mapper, "commands");
-  }
-
-  @Singleton
   @Named("vklive")
   public RabbitClient eventsFacade(ChannelPool pool, ObjectMapper mapper) {
     return new RabbitClient(pool, mapper, "vklive");

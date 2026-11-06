@@ -62,12 +62,14 @@ RabbitMQ "changes.widgets" ──▶ WidgetChangedEventHandler              │
                                               │
                                     TokenRPC (RabbitMQ RPC for auth tokens)
                                               │
+                                    MediaRPC (RabbitMQ RPC, "rpc" exchange, media.add)
+                                              │
                                     PostgreSQL (accounts + reward tables)
 ```
 
 **3 inbound channels:** HTTP webhook (anonymous), RabbitMQ command queue, RabbitMQ widget-change queue
 **1 outbound HTTP:** VkDataClient to vklive-data service
-**1 outbound RabbitMQ:** Normalized events via `@Named("vklive") RabbitClient`
+**2 outbound RabbitMQ:** Normalized events via `@Named("vklive") RabbitClient`, RPC calls via `TokenRPC` and `MediaRPC`
 **1 authenticated endpoint:** `GetSocketChannels` (POST, JWT required)
 
 ## EXTERNAL DEPENDENCY: oda-rabbit-conf
@@ -83,6 +85,8 @@ Critical shared library (`io.github.opendonationassistant:oda-rabbit-conf:0.11.2
 
 ## CONVENTIONS (DEVIATIONS FROM STANDARD)
 
+- ** Dont write javadoc **  -  code should be self-explanatory
+- **Optional instead of null** - try to use Optional, return it instead of null from methods
 - **2-space indentation** (no formatter config; enforced by practice)
 - **Records everywhere** - entities, DTOs, events, commands are all Java records
 - **Nested record DTOs** - HTTP payloads defined as `public static record` inside controller/handler classes

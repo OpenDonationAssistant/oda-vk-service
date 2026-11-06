@@ -154,6 +154,37 @@ public class VkMetricsTest {
   }
 
   @Test
+  public void countsUnknownRewardEventsPerType() {
+    var registry = new SimpleMeterRegistry();
+    var metrics = new VkMetrics(registry);
+
+    metrics.eventUnknownReward("channel_points_reward_demand_create");
+    metrics.eventUnknownReward("channel_points_reward_demand_create");
+    metrics.eventUnknownReward(null);
+
+    assertEquals(
+      2,
+      registry
+        .counter(
+          VkMetrics.EVENTS_UNKNOWN_REWARD_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          "channel_points_reward_demand_create"
+        )
+        .count()
+    );
+    assertEquals(
+      1,
+      registry
+        .counter(
+          VkMetrics.EVENTS_UNKNOWN_REWARD_METRIC_NAME,
+          VkMetrics.TYPE_TAG,
+          VkMetrics.UNKNOWN
+        )
+        .count()
+    );
+  }
+
+  @Test
   public void countsFailedEventsPerType() {
     var registry = new SimpleMeterRegistry();
     var metrics = new VkMetrics(registry);

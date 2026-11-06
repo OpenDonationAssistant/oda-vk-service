@@ -1,5 +1,6 @@
 package io.github.opendonationassistant.integration;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Get;
@@ -32,7 +33,7 @@ public interface VkDataClient {
   );
 
   @Serdeable
-  public static record AcceptRewardRequest(List<Demand> demands){}
+  public static record DemandsRequest(List<Demand> demands){}
 
   @Serdeable
   public static record Demand(Long id){}
@@ -41,8 +42,40 @@ public interface VkDataClient {
   CompletableFuture<Void> acceptReward(
     @Header("Authorization") String token,
     @QueryValue("channel_url") String channelUrl,
-    @Body AcceptRewardRequest request
+    @Body DemandsRequest request
   );
+
+  /** Declines a reward demand and returns the spent channel points. */
+  @Post("/v1/channel_point/reward/demand/reject")
+  CompletableFuture<Void> rejectReward(
+    @Header("Authorization") String token,
+    @QueryValue("channel_url") String channelUrl,
+    @Body DemandsRequest request
+  );
+
+  @Post("/v1/chat/message/send")
+  CompletableFuture<Void> sendChatMessage(
+    @Header("Authorization") String token,
+    @QueryValue("channel_url") String channelUrl,
+    @QueryValue("stream_id") String streamId,
+    @Body ChatMessageRequest request
+  );
+
+  @Serdeable
+  public static record ChatMessageRequest(List<ChatPart> parts) {}
+
+  @Serdeable
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static record ChatPart(
+    @Nullable Mention mention,
+    @Nullable Text text
+  ) {}
+
+  @Serdeable
+  public static record Mention(Long id) {}
+
+  @Serdeable
+  public static record Text(String content) {}
 
   @Post("/v1/channel_point/reward/delete")
   CompletableFuture<Void> deleteReward(
