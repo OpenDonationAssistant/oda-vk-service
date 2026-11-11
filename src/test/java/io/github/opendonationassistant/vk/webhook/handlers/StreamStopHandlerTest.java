@@ -12,7 +12,6 @@ import io.github.opendonationassistant.vk.webhook.VkEventType;
 import io.github.opendonationassistant.vk.webhook.VkWebhook;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
-import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,11 @@ public class StreamStopHandlerTest {
   RabbitClient events = mock(RabbitClient.class);
   VkMetrics metrics = new VkMetrics(new SimpleMeterRegistry());
   StreamStopHandler handler = new StreamStopHandler(
-    new AccountEventForwarder(accountRepository, events, metrics)
+    new AccountEventForwarder(
+      accountRepository,
+      eventSender(events),
+      metrics
+    )
   );
 
   @Test
@@ -36,7 +39,7 @@ public class StreamStopHandlerTest {
   public void testSendingStreamEndedEvent() throws Exception {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
 
     assertNull(handler.handle(streamStopEvent()).join());
 
@@ -62,7 +65,7 @@ public class StreamStopHandlerTest {
 
   @Test
   public void testNotSendingWithoutAccount() throws Exception {
-    when(accountRepository.findByVKId("123123123")).thenReturn(List.of());
+    when(accountRepository.findByVKId("123123123")).thenReturn(found());
 
     assertNull(handler.handle(streamStopEvent()).join());
 
@@ -73,7 +76,7 @@ public class StreamStopHandlerTest {
   public void testNotSendingWithoutStream() throws Exception {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
 
     var event = new VkWebhook.Event(
       "7029042",
@@ -113,7 +116,7 @@ public class StreamStopHandlerTest {
   private void stubAccount() {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
   }
 
   private VkWebhook.Event eventWith(VkWebhook.@Nullable Stream stream) {

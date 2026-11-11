@@ -1,9 +1,11 @@
 package io.github.opendonationassistant.vk.webhook.handlers;
 
 import static io.github.opendonationassistant.vk.webhook.handlers.HandlerTestFixtures.account;
+import static io.github.opendonationassistant.vk.webhook.handlers.HandlerTestFixtures.eventSender;
+import static io.github.opendonationassistant.vk.webhook.handlers.HandlerTestFixtures.found;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -20,7 +22,7 @@ import io.github.opendonationassistant.vk.webhook.VkWebhook;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.List;
+import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -32,7 +34,7 @@ public class AccountEventForwarderTest {
   VkMetrics metrics = new VkMetrics(registry);
   AccountEventForwarder forwarder = new AccountEventForwarder(
     accountRepository,
-    events,
+    eventSender(events),
     metrics
   );
 
@@ -40,7 +42,7 @@ public class AccountEventForwarderTest {
   public void publishesEventForResolvedAccount() throws Exception {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
 
     var result = forwarder.forward(event(), factory());
 
@@ -52,7 +54,7 @@ public class AccountEventForwarderTest {
 
   @Test
   public void doesNotPublishWithoutAccountAndCountsMetric() throws Exception {
-    when(accountRepository.findByVKId("123123123")).thenReturn(List.of());
+    when(accountRepository.findByVKId("123123123")).thenReturn(found());
 
     var result = forwarder.forward(event(), factory());
 
@@ -83,12 +85,12 @@ public class AccountEventForwarderTest {
   public void completesExceptionallyWhenPublishingFails() throws Exception {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
     doThrow(new IOException("broker down")).when(events).sendEvent(any());
 
     var result = forwarder.forward(event(), factory());
 
-    assertTrue(result.isCompletedExceptionally());
+    assertThrows(CompletionException.class, result::join);
   }
 
   @Test
@@ -96,12 +98,12 @@ public class AccountEventForwarderTest {
     throws Exception {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
     doThrow(new RuntimeException("broker down")).when(events).sendEvent(any());
 
     var result = forwarder.forward(event(), factory());
 
-    assertTrue(result.isCompletedExceptionally());
+    assertThrows(CompletionException.class, result::join);
   }
 
   private AccountEventFactory factory() {

@@ -8,6 +8,11 @@ import io.github.opendonationassistant.rabbit.TokenRPC;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 public class VkClientFactoryTest {
@@ -18,7 +23,18 @@ public class VkClientFactoryTest {
 
   private final VkDataClient data = mock(VkDataClient.class);
   private final TokenRPC tokenRPC = mock(TokenRPC.class);
-  private final VkClientFactory factory = new VkClientFactory(data, tokenRPC);
+  private final ExecutorService blockingExecutor =
+    Executors.newVirtualThreadPerTaskExecutor();
+  private final VkClientFactory factory = new VkClientFactory(
+    data,
+    tokenRPC,
+    blockingExecutor
+  );
+
+  @AfterEach
+  public void shutdownExecutor() {
+    blockingExecutor.close();
+  }
 
   @Test
   public void testCreatesClientWithResolvedBearerToken() {
@@ -30,6 +46,7 @@ public class VkClientFactoryTest {
 
     factory
       .create(RECIPIENT_ID, REFRESH_TOKEN_ID)
+      .join()
       .rejectReward(CHANNEL_URL, request)
       .join();
 
@@ -40,10 +57,7 @@ public class VkClientFactoryTest {
   public void testFailsWhenTokenResponseIsMissing() {
     when(tokenRPC.token(any(TokenRPC.TokenRequest.class))).thenReturn(null);
 
-    var error = assertThrows(
-      IllegalStateException.class,
-      () -> factory.create(RECIPIENT_ID, REFRESH_TOKEN_ID)
-    );
+    var error = tokenFailure();
 
     assertTrue(
       Objects.requireNonNull(error.getMessage()).contains(RECIPIENT_ID)
@@ -57,19 +71,24 @@ public class VkClientFactoryTest {
       new TokenRPC.TokenResponse(null, "no token")
     );
 
-    assertThrows(
-      IllegalStateException.class,
-      () -> factory.create(RECIPIENT_ID, REFRESH_TOKEN_ID)
-    );
+    assertNotNull(tokenFailure());
   }
 
   @Test
   public void testFailsWhenTokenIsBlank() {
     givenToken("  ");
 
-    assertThrows(
+    assertNotNull(tokenFailure());
+  }
+
+  private IllegalStateException tokenFailure() {
+    var exception = assertThrows(
+      CompletionException.class,
+      () -> factory.create(RECIPIENT_ID, REFRESH_TOKEN_ID).join()
+    );
+    return assertInstanceOf(
       IllegalStateException.class,
-      () -> factory.create(RECIPIENT_ID, REFRESH_TOKEN_ID)
+      Objects.requireNonNull(exception.getCause())
     );
   }
 

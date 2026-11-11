@@ -24,7 +24,11 @@ public class StreamRecordCreateHandlerTest {
   RabbitClient events = mock(RabbitClient.class);
   VkMetrics metrics = new VkMetrics(new SimpleMeterRegistry());
   StreamRecordCreateHandler handler = new StreamRecordCreateHandler(
-    new AccountEventForwarder(accountRepository, events, metrics)
+    new AccountEventForwarder(
+      accountRepository,
+      eventSender(events),
+      metrics
+    )
   );
 
   @Test
@@ -36,7 +40,7 @@ public class StreamRecordCreateHandlerTest {
   public void testSendingStreamRecordEvent() throws Exception {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
 
     assertNull(handler.handle(streamRecordEvent()).join());
 
@@ -62,7 +66,7 @@ public class StreamRecordCreateHandlerTest {
 
   @Test
   public void testNotSendingWithoutAccount() throws Exception {
-    when(accountRepository.findByVKId("123123123")).thenReturn(List.of());
+    when(accountRepository.findByVKId("123123123")).thenReturn(found());
 
     assertNull(handler.handle(streamRecordEvent()).join());
 
@@ -73,7 +77,7 @@ public class StreamRecordCreateHandlerTest {
   public void testNotSendingWithoutStreamRecord() throws Exception {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
 
     var event = new VkWebhook.Event(
       "7029219",
@@ -106,7 +110,7 @@ public class StreamRecordCreateHandlerTest {
   private void stubAccount() {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
   }
 
   private VkWebhook.Event eventWith(

@@ -58,7 +58,9 @@ public class VkRewardTest {
 
   @BeforeEach
   public void setUp() {
-    when(vkClientFactory.create(anyString(), anyString())).thenReturn(vkClient);
+    when(vkClientFactory.create(anyString(), anyString())).thenReturn(
+      CompletableFuture.completedFuture(vkClient)
+    );
     when(
       vkClient.acceptReward(
         anyString(),
@@ -78,7 +80,9 @@ public class VkRewardTest {
       )
     ).thenReturn(CompletableFuture.completedFuture(null));
     when(media.add(any(MediaRPC.AddMediaRequest.class))).thenReturn(
-      new MediaRPC.AddMediaResponse("media-id", "")
+      CompletableFuture.completedFuture(
+        new MediaRPC.AddMediaResponse("media-id", "")
+      )
     );
   }
 
@@ -164,8 +168,8 @@ public class VkRewardTest {
 
   @Test
   public void testRejectsRewardAndNotifiesChatWhenMediaRpcFails() {
-    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenThrow(
-      new RuntimeException("rpc timeout")
+    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenReturn(
+      CompletableFuture.failedFuture(new RuntimeException("rpc timeout"))
     );
 
     assertNull(reward.accept(demand()).join());
@@ -180,7 +184,9 @@ public class VkRewardTest {
   @Test
   public void testRejectsRewardAndNotifiesChatWhenMediaIsRejected() {
     when(media.add(any(MediaRPC.AddMediaRequest.class))).thenReturn(
-      new MediaRPC.AddMediaResponse(null, "Видео не найдено")
+      CompletableFuture.completedFuture(
+        new MediaRPC.AddMediaResponse(null, "Видео не найдено")
+      )
     );
 
     assertNull(reward.accept(demand()).join());
@@ -194,7 +200,9 @@ public class VkRewardTest {
 
   @Test
   public void testRejectsRewardAndNotifiesChatWhenMediaResponseIsNull() {
-    doReturn(null).when(media).add(any(MediaRPC.AddMediaRequest.class));
+    doReturn(CompletableFuture.completedFuture(null))
+      .when(media)
+      .add(any(MediaRPC.AddMediaRequest.class));
 
     assertNull(reward.accept(demand()).join());
 
@@ -207,8 +215,8 @@ public class VkRewardTest {
 
   @Test
   public void testFallsBackToNickWhenRewarderIdIsMissing() {
-    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenThrow(
-      new RuntimeException("rpc timeout")
+    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenReturn(
+      CompletableFuture.failedFuture(new RuntimeException("rpc timeout"))
     );
 
     assertNull(reward.accept(demand((Long) null)).join());
@@ -225,8 +233,8 @@ public class VkRewardTest {
 
   @Test
   public void testStillRejectsRewardWhenChatNotificationFails() {
-    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenThrow(
-      new RuntimeException("rpc timeout")
+    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenReturn(
+      CompletableFuture.failedFuture(new RuntimeException("rpc timeout"))
     );
     when(
       vkClient.sendChatMessage(
@@ -247,8 +255,8 @@ public class VkRewardTest {
 
   @Test
   public void testStillNotifiesChatWhenRejectFails() {
-    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenThrow(
-      new RuntimeException("rpc timeout")
+    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenReturn(
+      CompletableFuture.failedFuture(new RuntimeException("rpc timeout"))
     );
     when(
       vkClient.rejectReward(
@@ -267,8 +275,8 @@ public class VkRewardTest {
 
   @Test
   public void testStillNotifiesChatWhenRejectThrowsSynchronously() {
-    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenThrow(
-      new RuntimeException("rpc timeout")
+    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenReturn(
+      CompletableFuture.failedFuture(new RuntimeException("rpc timeout"))
     );
     when(
       vkClient.rejectReward(
@@ -285,8 +293,8 @@ public class VkRewardTest {
 
   @Test
   public void testStillRejectsRewardWhenChatThrowsSynchronously() {
-    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenThrow(
-      new RuntimeException("rpc timeout")
+    when(media.add(any(MediaRPC.AddMediaRequest.class))).thenReturn(
+      CompletableFuture.failedFuture(new RuntimeException("rpc timeout"))
     );
     when(
       vkClient.sendChatMessage(

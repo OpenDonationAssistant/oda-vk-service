@@ -95,7 +95,7 @@ public class VkWebhookTest {
       CompletableFuture.completedFuture(null)
     );
 
-    webhookWith(handler).listenVklive(DEMAND_PAYLOAD);
+    webhookWith(handler).listenVklive(DEMAND_PAYLOAD).join();
 
     var captor = ArgumentCaptor.forClass(Event.class);
     verify(handler).handle(captor.capture());
@@ -134,7 +134,7 @@ public class VkWebhookTest {
       CompletableFuture.completedFuture(null)
     );
 
-    webhookWith(handler).listenVklive(FOLLOW_PAYLOAD);
+    webhookWith(handler).listenVklive(FOLLOW_PAYLOAD).join();
 
     verify(handler).handle(any(Event.class));
     assertEquals(1, events(VkMetrics.EVENTS_RECEIVED_METRIC_NAME, FOLLOW_TYPE));
@@ -149,7 +149,7 @@ public class VkWebhookTest {
   public void countsUnhandledEvent() {
     when(handler.type()).thenReturn(VkEventType.RAID_START);
 
-    webhookWith(handler).listenVklive(FOLLOW_PAYLOAD);
+    webhookWith(handler).listenVklive(FOLLOW_PAYLOAD).join();
 
     verify(handler).type();
     assertEquals(1, events(VkMetrics.EVENTS_RECEIVED_METRIC_NAME, FOLLOW_TYPE));
@@ -164,7 +164,7 @@ public class VkWebhookTest {
   public void countsUnhandledEventForUnknownType() {
     when(handler.type()).thenReturn(VkEventType.RAID_START);
 
-    webhookWith(handler).listenVklive(UNKNOWN_TYPE_PAYLOAD);
+    webhookWith(handler).listenVklive(UNKNOWN_TYPE_PAYLOAD).join();
 
     verify(handler, never()).handle(any(Event.class));
     assertEquals(
@@ -183,7 +183,7 @@ public class VkWebhookTest {
 
   @Test
   public void countsInvalidEventOnNullPayload() {
-    webhookWithoutHandlers().listenVklive("null");
+    webhookWithoutHandlers().listenVklive("null").join();
 
     assertEquals(
       1,
@@ -193,7 +193,7 @@ public class VkWebhookTest {
 
   @Test
   public void countsInvalidEventOnParseFailure() {
-    webhookWithoutHandlers().listenVklive("not json");
+    webhookWithoutHandlers().listenVklive("not json").join();
 
     assertEquals(
       1,
@@ -212,7 +212,7 @@ public class VkWebhookTest {
       CompletableFuture.failedFuture(new IllegalStateException("send failed"))
     );
 
-    webhookWith(handler).listenVklive(FOLLOW_PAYLOAD);
+    webhookWith(handler).listenVklive(FOLLOW_PAYLOAD).join();
 
     verify(handler).handle(any(Event.class));
     assertEquals(1, events(VkMetrics.EVENTS_RECEIVED_METRIC_NAME, FOLLOW_TYPE));

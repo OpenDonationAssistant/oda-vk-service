@@ -12,7 +12,6 @@ import io.github.opendonationassistant.vk.webhook.VkEventType;
 import io.github.opendonationassistant.vk.webhook.VkWebhook;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
-import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,11 @@ public class SubscriptionRenewHandlerTest {
   RabbitClient events = mock(RabbitClient.class);
   VkMetrics metrics = new VkMetrics(new SimpleMeterRegistry());
   SubscriptionRenewHandler handler = new SubscriptionRenewHandler(
-    new AccountEventForwarder(accountRepository, events, metrics)
+    new AccountEventForwarder(
+      accountRepository,
+      eventSender(events),
+      metrics
+    )
   );
 
   @Test
@@ -36,7 +39,7 @@ public class SubscriptionRenewHandlerTest {
   public void testSendingSubscriptionEvent() throws Exception {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
 
     assertNull(handler.handle(subscriptionRenewEvent()).join());
 
@@ -55,7 +58,7 @@ public class SubscriptionRenewHandlerTest {
 
   @Test
   public void testNotSendingWithoutAccount() throws Exception {
-    when(accountRepository.findByVKId("123123123")).thenReturn(List.of());
+    when(accountRepository.findByVKId("123123123")).thenReturn(found());
 
     assertNull(handler.handle(subscriptionRenewEvent()).join());
 
@@ -66,7 +69,7 @@ public class SubscriptionRenewHandlerTest {
   public void testNotSendingWithoutSubscription() throws Exception {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
 
     var event = new VkWebhook.Event(
       "6889830",
@@ -123,7 +126,7 @@ public class SubscriptionRenewHandlerTest {
   private void stubAccount() {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
   }
 
   private VkWebhook.Event eventWith(

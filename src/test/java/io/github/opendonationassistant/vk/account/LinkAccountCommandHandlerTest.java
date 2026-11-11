@@ -48,8 +48,8 @@ public class LinkAccountCommandHandlerTest {
     );
     Awaitility.await()
       .pollDelay(Duration.ofSeconds(1))
-      .until(() -> repository.findByRecipientId(recipientId).size() > 0);
-    var all = repository.findByRecipientId(recipientId);
+      .until(() -> repository.findByRecipientId(recipientId).join().size() > 0);
+    var all = repository.findByRecipientId(recipientId).join();
     assertEquals(1, all.size());
     var account = all.stream().findFirst().get();
     assertTrue(account.data().id() != null);

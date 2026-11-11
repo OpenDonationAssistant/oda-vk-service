@@ -22,13 +22,15 @@ public class LinkAccountCommandHandler
 
   @Override
   public void handle(LinkVkAccount command) throws IOException {
-    repository.create(
-      command.recipientId(),
-      command.refreshTokenId(),
-      command.id(),
-      command.username(),
-      command.channelUrl()
-    );
+    repository
+      .create(
+        command.recipientId(),
+        command.refreshTokenId(),
+        command.id(),
+        command.username(),
+        command.channelUrl()
+      )
+      .join();
   }
 
   @Serdeable

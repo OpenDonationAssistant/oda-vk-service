@@ -69,17 +69,26 @@ public class WidgetChangedEventHandler {
       return;
     }
 
-    var accounts = accountRepository.findByRecipientId(ownerId);
-    if (accounts.isEmpty()) {
-      log.debug("Missing accounts");
-      return;
-    }
-    log.info("Updating reward for account", Map.of("recipientId", ownerId));
-    var updates = accounts
-      .stream()
-      .map(account -> processSystem(widget.id(), properties, "vklive", account))
-      .toArray(CompletableFuture<?>[]::new);
-    CompletableFuture.allOf(updates).join();
+    accountRepository
+      .findByRecipientId(ownerId)
+      .thenCompose(accounts -> {
+        if (accounts.isEmpty()) {
+          log.debug("Missing accounts");
+          return CompletableFuture.completedFuture(null);
+        }
+        log.info(
+          "Updating reward for account",
+          Map.of("recipientId", ownerId)
+        );
+        var updates = accounts
+          .stream()
+          .map(account ->
+            processSystem(widget.id(), properties, "vklive", account)
+          )
+          .toArray(CompletableFuture<?>[]::new);
+        return CompletableFuture.allOf(updates);
+      })
+      .join();
   }
 
   private CompletableFuture<Void> processSystem(
@@ -120,9 +129,15 @@ public class WidgetChangedEventHandler {
     var recipientId = account.data().recipientId();
     return account
       .getRewardsForWidget(widgetId)
-      .findFirst()
-      .map(reward -> reward.update(title, cost))
-      .orElseGet(() -> account.createReward(widgetId, "music", title, cost))
+      .thenCompose(rewards ->
+        rewards
+          .stream()
+          .findFirst()
+          .map(reward -> reward.update(title, cost))
+          .orElseGet(() ->
+            account.createReward(widgetId, "music", title, cost)
+          )
+      )
       .exceptionally(error -> {
         log.error(
           "Failed to sync reward for widget %s and recipient %s".formatted(

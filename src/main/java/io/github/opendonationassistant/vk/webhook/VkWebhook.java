@@ -7,8 +7,6 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Consumes;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
-import io.micronaut.scheduling.TaskExecutors;
-import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.serde.ObjectMapper;
@@ -17,6 +15,7 @@ import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.jspecify.annotations.Nullable;
 
 @Controller
@@ -41,21 +40,20 @@ public class VkWebhook {
   @Post("/vklive/events")
   @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
   @Secured(SecurityRule.IS_ANONYMOUS)
-  @ExecuteOn(TaskExecutors.BLOCKING)
-  public void listenVklive(String event) {
+  public CompletableFuture<Void> listenVklive(String event) {
     Event payload;
     try {
       payload = mapper.readValue(event, Event.class);
     } catch (Exception e) {
       log.error("Failed to parse event", e);
       metrics.eventInvalid(null);
-      return;
+      return CompletableFuture.completedFuture(null);
     }
 
     if (payload == null) {
       log.warn("Received invalid event", Map.of("reason", "empty payload"));
       metrics.eventInvalid(null);
-      return;
+      return CompletableFuture.completedFuture(null);
     }
 
     var payloadType = payload.type();
@@ -65,7 +63,7 @@ public class VkWebhook {
         Map.of("reason", "missing type or data")
       );
       metrics.eventInvalid(payloadType);
-      return;
+      return CompletableFuture.completedFuture(null);
     }
 
     var id = payload.id();
@@ -79,7 +77,7 @@ public class VkWebhook {
     var eventType = VkEventType.fromWireName(payloadType);
     if (eventType == null) {
       metrics.eventUnhandled(payloadType);
-      return;
+      return CompletableFuture.completedFuture(null);
     }
 
     var matchingHandlers = handlers
@@ -88,22 +86,39 @@ public class VkWebhook {
       .toList();
     if (matchingHandlers.isEmpty()) {
       metrics.eventUnhandled(payloadType);
-      return;
+      return CompletableFuture.completedFuture(null);
     }
 
     try {
       var results = matchingHandlers
         .stream()
         .map(it -> it.handle(payload))
-        .toList();
-      CompletableFuture.allOf(
-        results.toArray(CompletableFuture<?>[]::new)
-      ).join();
-      metrics.eventHandled(payloadType);
+        .toArray(CompletableFuture<?>[]::new);
+      return CompletableFuture
+        .allOf(results)
+        .handle((ignored, error) -> {
+          if (error == null) {
+            metrics.eventHandled(payloadType);
+          } else {
+            log.error("Failed to handle event", unwrap(error));
+            metrics.eventFailed(payloadType);
+          }
+          return null;
+        });
     } catch (Exception e) {
       log.error("Failed to handle event", e);
       metrics.eventFailed(payloadType);
+      return CompletableFuture.completedFuture(null);
     }
+  }
+
+  private static Exception unwrap(Throwable error) {
+    var cause = error instanceof CompletionException && error.getCause() != null
+      ? error.getCause()
+      : error;
+    return cause instanceof Exception exception
+      ? exception
+      : new CompletionException(cause);
   }
 
   @Serdeable

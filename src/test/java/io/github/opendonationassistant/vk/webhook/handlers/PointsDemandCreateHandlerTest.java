@@ -45,8 +45,10 @@ public class PointsDemandCreateHandlerTest {
     var reward = mock(VkReward.class);
     var demand = demand();
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
-    when(account.reward(REWARD_ID)).thenReturn(Optional.of(reward));
+      .thenReturn(found(account));
+    when(account.reward(REWARD_ID)).thenReturn(
+      CompletableFuture.completedFuture(Optional.of(reward))
+    );
     when(reward.accept(demand)).thenReturn(
       CompletableFuture.completedFuture(null)
     );
@@ -59,7 +61,7 @@ public class PointsDemandCreateHandlerTest {
 
   @Test
   public void testCountsEventWithoutAccount() {
-    when(accountRepository.findByVKId("123123123")).thenReturn(List.of());
+    when(accountRepository.findByVKId("123123123")).thenReturn(found());
 
     assertNull(handler.handle(event(demand())).join());
 
@@ -73,8 +75,10 @@ public class PointsDemandCreateHandlerTest {
   public void testDoesNothingWhenRewardIsUnknown() {
     var account = account("123123123", RECIPIENT_ID);
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
-    when(account.reward(REWARD_ID)).thenReturn(Optional.empty());
+      .thenReturn(found(account));
+    when(account.reward(REWARD_ID)).thenReturn(
+      CompletableFuture.completedFuture(Optional.empty())
+    );
 
     assertNull(handler.handle(event(demand())).join());
 
@@ -93,7 +97,7 @@ public class PointsDemandCreateHandlerTest {
   public void testDoesNothingWhenDemandHasNoReward() {
     var account = account("123123123", RECIPIENT_ID);
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
     var demand = new VkWebhook.Demand(
       8433849L,
       new VkWebhook.User("stCarolas", 15346984L),

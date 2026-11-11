@@ -22,10 +22,12 @@ public class UnlinkAccountCommandHandler
 
   @Override
   public void handle(UnlinkVkAccount command) throws IOException {
-    repository.deleteByRecipientIdAndRefreshTokenId(
-      command.recipientId(),
-      command.refreshTokenId()
-    );
+    repository
+      .deleteByRecipientIdAndRefreshTokenId(
+        command.recipientId(),
+        command.refreshTokenId()
+      )
+      .join();
   }
 
   @Serdeable

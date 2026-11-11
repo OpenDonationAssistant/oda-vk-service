@@ -8,10 +8,8 @@ import io.github.opendonationassistant.integration.VkClient;
 import io.github.opendonationassistant.integration.VkClientFactory;
 import io.github.opendonationassistant.vk.reward.RewardData;
 import io.github.opendonationassistant.vk.reward.RewardDataRepository;
-import io.github.opendonationassistant.vk.webhook.VkWebhook;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 
 public class VkAccountTest {
@@ -47,25 +45,29 @@ public class VkAccountTest {
   public void testFindsRewardForDemand() {
     givenKnownReward();
 
-    var found = account.reward(REWARD_ID);
+    var found = account.reward(REWARD_ID).join();
 
     assertTrue(found.isPresent());
     assertEquals(REWARD_ID, found.get().data().id());
     // TODO test all fields from found
-    verify(rewardRepository).findById(REWARD_ID);
+    verify(rewardRepository).findOneById(REWARD_ID);
   }
 
   @Test
   public void testReturnsEmptyForUnknownReward() {
-    when(rewardRepository.findById(REWARD_ID)).thenReturn(Optional.empty());
+    when(rewardRepository.findOneById(REWARD_ID)).thenReturn(
+      CompletableFuture.completedFuture(Optional.empty())
+    );
 
-    assertTrue(account.reward(REWARD_ID).isEmpty());
+    assertTrue(account.reward(REWARD_ID).join().isEmpty());
     verifyNoInteractions(media, vkClient);
   }
 
   private void givenKnownReward() {
-    when(rewardRepository.findById(REWARD_ID)).thenReturn(
-      Optional.of(new RewardData(REWARD_ID, "id", "widget-id", "media"))
+    when(rewardRepository.findOneById(REWARD_ID)).thenReturn(
+      CompletableFuture.completedFuture(
+        Optional.of(new RewardData(REWARD_ID, "id", "widget-id", "media"))
+      )
     );
   }
 }

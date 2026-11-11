@@ -2,6 +2,7 @@ package io.github.opendonationassistant.vk.reward;
 
 import io.github.opendonationassistant.commons.logging.ODALogger;
 import io.github.opendonationassistant.integration.MediaRPC;
+import io.github.opendonationassistant.integration.MediaRPC.AddMediaResponse;
 import io.github.opendonationassistant.integration.VkClient;
 import io.github.opendonationassistant.integration.VkClientFactory;
 import io.github.opendonationassistant.integration.VkDataClient;
@@ -16,6 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.jspecify.annotations.Nullable;
 
 @Serdeable
@@ -50,11 +52,13 @@ public class VkReward {
 
   public CompletableFuture<Void> update(String title, Integer cost) {
     return vk()
-      .editReward(
-        account.data().channelUrl(),
-        data.id(),
-        new VkDataClient.RewardRequest(
-          new VkDataClient.RewardRequest.Reward(true, title, cost)
+      .thenCompose(vkClient ->
+        vkClient.editReward(
+          account.data().channelUrl(),
+          data.id(),
+          new VkDataClient.RewardRequest(
+            new VkDataClient.RewardRequest.Reward(true, title, cost)
+          )
         )
       );
   }
@@ -88,16 +92,21 @@ public class VkReward {
       return notifyChat(user, DEMAND_ID_MISSING_REASON, false);
     }
     var failureReason = addMedia(mediaId(demand), link, user.nick());
-    if (failureReason.isPresent()) {
-      return declineAndNotify(demand, user, failureReason.get());
-    }
-    return vk()
-      .acceptReward(
-        account.data().channelUrl(),
-        new VkDataClient.DemandsRequest(
-          List.of(new VkDataClient.Demand(demand.id()))
+    return failureReason.thenCompose(reason ->
+      reason
+        .map(it -> declineAndNotify(demand, user, it))
+        .orElseGet(() ->
+          vk()
+            .thenCompose(vkClient ->
+              vkClient.acceptReward(
+                account.data().channelUrl(),
+                new VkDataClient.DemandsRequest(
+                  List.of(new VkDataClient.Demand(demand.id()))
+                )
+              )
+            )
         )
-      );
+    );
   }
 
   private Optional<String> rewardLink(
@@ -119,13 +128,13 @@ public class VkReward {
       .findFirst();
   }
 
-  private Optional<String> addMedia(
+  private CompletableFuture<Optional<String>> addMedia(
     String mediaId,
     String link,
     String requester
   ) {
-    try {
-      var response = media.add(
+    return media
+      .add(
         new MediaRPC.AddMediaRequest(
           mediaId,
           link,
@@ -133,31 +142,57 @@ public class VkReward {
           account.data().recipientId(),
           VkAccount.VK_LIVE_SYSTEM
         )
-      );
-      if (response != null && response.id() != null) {
-        return Optional.empty();
-      }
-      var message = response == null
-        ? "нет ответа от сервиса медиа"
-        : Objects.toString(response.message(), "");
-      log.error(
-        "Failed to add media from reward",
-        Map.of(
-          "mediaId",
-          mediaId,
-          "url",
-          Objects.toString(link, ""),
-          "recipientId",
-          account.data().recipientId(),
-          "error",
-          message
-        )
-      );
-      return Optional.of(normalizeReason(message));
-    } catch (Exception e) {
-      log.error("Failed to add media from reward", e);
-      return Optional.of(normalizeReason(e.getMessage()));
+      )
+      .handle((response, error) -> {
+        if (error != null) {
+          return mediaError(error);
+        }
+        return mediaResult(mediaId, link, response);
+      });
+  }
+
+  private Optional<String> mediaResult(
+    String mediaId,
+    String link,
+    @Nullable AddMediaResponse response
+  ) {
+    if (response != null && response.id() != null) {
+      return Optional.empty();
     }
+    var message = response == null
+      ? "нет ответа от сервиса медиа"
+      : Objects.toString(response.message(), "");
+    log.error(
+      "Failed to add media from reward",
+      Map.of(
+        "mediaId",
+        mediaId,
+        "url",
+        Objects.toString(link, ""),
+        "recipientId",
+        account.data().recipientId(),
+        "error",
+        message
+      )
+    );
+    return Optional.of(normalizeReason(message));
+  }
+
+  private Optional<String> mediaError(Throwable error) {
+    var cause = unwrap(error);
+    log.error(
+      "Failed to add media from reward",
+      cause instanceof Exception exception
+        ? exception
+        : new CompletionException(cause)
+    );
+    return Optional.of(normalizeReason(cause.getMessage()));
+  }
+
+  private static Throwable unwrap(Throwable error) {
+    return error instanceof CompletionException && error.getCause() != null
+      ? error.getCause()
+      : error;
   }
 
   // The media service uses this id as a primary key, so the seed is a
@@ -189,10 +224,12 @@ public class VkReward {
   private CompletableFuture<Boolean> declineReward(VkWebhook.Demand demand) {
     try {
       return vk()
-        .rejectReward(
-          account.data().channelUrl(),
-          new VkDataClient.DemandsRequest(
-            List.of(new VkDataClient.Demand(demand.id()))
+        .thenCompose(vkClient ->
+          vkClient.rejectReward(
+            account.data().channelUrl(),
+            new VkDataClient.DemandsRequest(
+              List.of(new VkDataClient.Demand(demand.id()))
+            )
           )
         )
         .handle((ignored, error) -> {
@@ -229,7 +266,9 @@ public class VkReward {
     var request = failureMessage(user, reason, refunded);
     try {
       return vk()
-        .sendChatMessage(account.data().channelUrl(), request)
+        .thenCompose(vkClient ->
+          vkClient.sendChatMessage(account.data().channelUrl(), request)
+        )
         .exceptionally(e -> {
           logNotifyFailure(e);
           return null;
@@ -295,7 +334,7 @@ public class VkReward {
     return value;
   }
 
-  private VkClient vk() {
+  private CompletableFuture<VkClient> vk() {
     var accountData = account.data();
     return vkClientFactory.create(
       accountData.recipientId(),

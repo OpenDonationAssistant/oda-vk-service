@@ -26,6 +26,13 @@ micronaut:
     event-listener:
       type: fixed
       nThreads: 1
+  http:
+    client:
+      connect-timeout: 2s
+      read-timeout: 5s
+rabbitmq:
+  rpc:
+    timeout: 3s
 flyway:
   datasources:
     default:

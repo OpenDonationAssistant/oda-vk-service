@@ -39,8 +39,10 @@ public class UnlinkAccountCommandHandlerTest {
     var username = "vk-username";
     var channelUrl = "channelUrl";
 
-    repository.create(recipientId, refreshTokenId, vkId, username, channelUrl);
-    var before = repository.findByRecipientId(recipientId);
+    repository
+      .create(recipientId, refreshTokenId, vkId, username, channelUrl)
+      .join();
+    var before = repository.findByRecipientId(recipientId).join();
     assertEquals(1, before.size());
 
     var rabbit = new RabbitClient(channel, mapper, "commands");
@@ -53,6 +55,6 @@ public class UnlinkAccountCommandHandlerTest {
 
     Awaitility.await()
       .pollDelay(Duration.ofSeconds(1))
-      .until(() -> repository.findByRecipientId(recipientId).isEmpty());
+      .until(() -> repository.findByRecipientId(recipientId).join().isEmpty());
   }
 }

@@ -56,9 +56,9 @@ vk/
 
 **Handler dispatch:** `VkWebhook` collects all `VkEventHandler` beans, filters by `canHandle(type)`, calls `handle()` on each. Handlers return `CompletableFuture<?>`.
 
-**Repository pattern:** `VkAccountRepository` (domain) wraps `VkAccountDataRepository` (JDBC). Domain converts `VkAccountData` → `VkAccount` with injected dependencies.
+**Repository pattern:** `VkAccountRepository` (domain) wraps `VkAccountDataRepository` (JDBC). Domain converts `VkAccountData` → `VkAccount` with injected dependencies. JDBC repositories extend `AsyncCrudRepository`, so generated CRUD methods (`save`, `findById`, `deleteById`, ...) return `CompletableFuture`; the domain composes them instead of blocking.
 
-**Event flow:** Webhook → Handler → looks up `VkAccount` → sends outbound event via `RabbitClient("vklive")` or calls `VkClient` for API operations.
+**Event flow:** Webhook → Handler → looks up `VkAccount` → sends outbound event via the `@Named("vklive")` `AsyncRabbitClient` (async wrapper over `RabbitClient("vklive")`) or calls `VkClient` for API operations.
 
 ## ANTI-PATTERNS
 

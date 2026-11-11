@@ -1,6 +1,8 @@
 package io.github.opendonationassistant;
 
+import io.github.opendonationassistant.commons.BlockingExecutor;
 import io.github.opendonationassistant.rabbit.AMQPConfiguration;
+import io.github.opendonationassistant.rabbit.AsyncRabbitClient;
 import io.github.opendonationassistant.rabbit.RabbitClient;
 import io.github.opendonationassistant.vk.reward.WidgetChangedEventHandler;
 import io.micronaut.context.ApplicationContextBuilder;
@@ -55,5 +57,14 @@ public class Application {
   @Named("vklive")
   public RabbitClient eventsFacade(ChannelPool pool, ObjectMapper mapper) {
     return new RabbitClient(pool, mapper, "vklive");
+  }
+
+  @Singleton
+  @Named("vklive")
+  public AsyncRabbitClient asyncEventsFacade(
+    @Named("vklive") RabbitClient events,
+    BlockingExecutor blockingExecutor
+  ) {
+    return new AsyncRabbitClient(events, blockingExecutor);
   }
 }

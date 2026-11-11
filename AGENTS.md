@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-Java 25 / Micronaut 5.1.0 microservice bridging VK Live streaming events into the OpenDonationAssistant (ODA) ecosystem. Handles VK webhooks (stream events, subscriptions, rewards, follows, raids), processes commands via RabbitMQ, manages VK account linkage. Part of a larger ODA microservice architecture.
+Java 25 / Micronaut 5.2.5 microservice bridging VK Live streaming events into the OpenDonationAssistant (ODA) ecosystem. Handles VK webhooks (stream events, subscriptions, rewards, follows, raids), processes commands via RabbitMQ, manages VK account linkage. Part of a larger ODA microservice architecture.
 
 ## STRUCTURE
 
@@ -40,6 +40,8 @@ oda-vk-service/
 |------|----------|-------|
 | Add new VK event type | `vk/webhook/handlers/` | Implement `VkEventHandler` interface |
 | Modify VK API calls | `integration/VkClient.java` | Wraps `VkDataClient` (Micronaut declarative HTTP) |
+| Media RPC | `integration/MediaRPC.java` | `@RabbitClient` RPC returning `CompletableFuture<AddMediaResponse>`; async replies are supported by the `micronaut-rabbitmq` fork pinned in `pom.xml` |
+| Async event sender | `AsyncRabbitClient` (oda-rabbit-conf) | `CompletableFuture` wrapper over the `@Named("vklive")` `RabbitClient`; bean in `Application.asyncEventsFacade()` |
 | Add DB schema change | `src/main/resources/db/migration/` | Flyway: `V{N}__description.sql` |
 | Add RabbitMQ binding | `Application.rabbitConfiguration()` | Register `Exchange` with routing keys |
 | Add command handler | `vk/account/` | Extend `AbstractMessageHandler<T>` |
@@ -74,8 +76,8 @@ RabbitMQ "changes.widgets" ──▶ WidgetChangedEventHandler              │
 
 ## EXTERNAL DEPENDENCY: oda-rabbit-conf
 
-Critical shared library (`io.github.opendonationassistant:oda-rabbit-conf:0.11.232`) provides:
-- `RabbitClient` / `TokenRPC` - RabbitMQ messaging + token RPC
+Critical shared library (`io.github.opendonationassistant:oda-rabbit-conf:0.12.247`) provides:
+- `RabbitClient` / `AsyncRabbitClient` / `TokenRPC` - RabbitMQ messaging (synchronous client + `CompletableFuture` wrapper) + token RPC
 - `MessageProcessor` / `AbstractMessageHandler` - Command processing framework
 - `BaseController` - Base HTTP controller with auth helpers
 - `ODALogger` - Structured logging wrapper
@@ -92,6 +94,7 @@ Critical shared library (`io.github.opendonationassistant:oda-rabbit-conf:0.11.2
 - **Nested record DTOs** - HTTP payloads defined as `public static record` inside controller/handler classes
 - **`Vk` vs `VK` dual naming** - service classes use `Vk` prefix, external event types use `VK` (all-caps)
 - **No reactive streams** - `CompletableFuture` exclusively; Reactor/RxJava explicitly excluded in AOT config
+- **RPC clients can be async** - `@RabbitClient` interfaces may declare `CompletableFuture<T>` returns; the `micronaut-rabbitmq` fork pinned in `pom.xml` (5.1.1-fork.1) resolves the reply type from the future's type variable. `MediaRPC` uses this directly; `TokenRPC` remains synchronous. There is no async media adapter - call `MediaRPC.add(...)` and compose the future.
 - **`var` extensively** - local variable type inference used throughout
 - **Constructor injection only** - `@Inject` on constructors, `private final` fields
 - **`ODALogger` with `Map.of()`** - structured logging, never `System.out` or `printStackTrace` (except one known violation in VkWebhook)
@@ -102,7 +105,6 @@ Critical shared library (`io.github.opendonationassistant:oda-rabbit-conf:0.11.2
 |-------|------|----------|
 | `e.printStackTrace()` in production code | `VkWebhook.java:68` | HIGH - replace with `log.error()` |
 | Broad `catch (Exception e)` | `VkWebhook.java:67` | MEDIUM - separate deserialization from handler errors |
-| `.join()` in sequential `forEach` | `VkWebhook.java:65` | MEDIUM - blocks thread, no parallel execution |
 | Non-final logger fields | `VkWebhook.java:25`, `WidgetChangedEventHandler.java:27` | LOW |
 | Commented-out dead code | `VkClient.java:79-98` | LOW - remove or ticket |
 | Unauthenticated management endpoints | `application.yml:35,37` | MEDIUM - verify intentional |
@@ -116,8 +118,12 @@ mvn clean package
 # Build (native image)
 mvn clean package -Dpackaging=native-image
 
-# Run tests
+# Run tests (Docker)
 mvn test
+
+# Run tests (Podman socket - used in this environment)
+DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock \
+  TESTCONTAINERS_RYUK_DISABLED=true mvn test
 
 # Run locally (standalone profile - needs PostgreSQL)
 mvn mn:run
@@ -130,8 +136,9 @@ mvn test  # uses Micronaut test resources
 
 - **Default profile is `standalone`** (set in `Application.DefaultEnvironmentConfigurer`). Requires external PostgreSQL.
 - **`allinone` profile** auto-provisions test resources for integration tests.
-- **Thread pools are fixed-size with 1 thread each** for `command-listener` and `event-listener` executors - limits concurrency.
-- **Webhook is synchronous** - `.join()` on each handler means HTTP response blocks until all handlers complete.
+- **Testcontainers runs on Podman here** - Micronaut test resources provision RabbitMQ and PostgreSQL through the Podman socket (`DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock`, `TESTCONTAINERS_RYUK_DISABLED=true`).
+- **Thread pools are fixed-size** - 1 thread each for `command-listener` and `event-listener`.
+- **Webhook runs on the Netty event loop** - no `@ExecuteOn`; `listenVklive` returns a `CompletableFuture`, and blocking work (JDBC, media RPC, RabbitMQ publish) is offloaded to `TaskExecutors.BLOCKING` through `BlockingExecutor` (now `io.github.opendonationassistant.commons.BlockingExecutor` in `oda-commons`).
 - **Dockerfile expects pre-built native binary** - build happens in CI, not in Docker.
 - **CI fully delegated** to `OpenDonationAssistant/oda-libraries/.github/workflows/release_service.yml` - zero local CI logic.
 - **JDK 25** is bleeding-edge; ensure dependencies are compatible.

@@ -12,7 +12,6 @@ import io.github.opendonationassistant.vk.webhook.VkEventType;
 import io.github.opendonationassistant.vk.webhook.VkWebhook;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
-import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,11 @@ public class RaidStartHandlerTest {
   RabbitClient events = mock(RabbitClient.class);
   VkMetrics metrics = new VkMetrics(new SimpleMeterRegistry());
   RaidStartHandler handler = new RaidStartHandler(
-    new AccountEventForwarder(accountRepository, events, metrics)
+    new AccountEventForwarder(
+      accountRepository,
+      eventSender(events),
+      metrics
+    )
   );
 
   @Test
@@ -36,7 +39,7 @@ public class RaidStartHandlerTest {
   public void testSendingRaidEvent() throws Exception {
     var account = account("29564758", "recipient-123");
     when(accountRepository.findByVKId("29564758"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
 
     assertNull(handler.handle(raidEvent()).join());
 
@@ -54,7 +57,7 @@ public class RaidStartHandlerTest {
 
   @Test
   public void testNotSendingWithoutAccount() throws Exception {
-    when(accountRepository.findByVKId("29564758")).thenReturn(List.of());
+    when(accountRepository.findByVKId("29564758")).thenReturn(found());
 
     assertNull(handler.handle(raidEvent()).join());
 
@@ -65,7 +68,7 @@ public class RaidStartHandlerTest {
   public void testNotSendingWithoutRaid() throws Exception {
     var account = account("29564758", "recipient-123");
     when(accountRepository.findByVKId("29564758"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
 
     var event = new VkWebhook.Event(
       "7157765",
@@ -130,7 +133,7 @@ public class RaidStartHandlerTest {
   private void stubAccount() {
     var account = account("29564758", "recipient-123");
     when(accountRepository.findByVKId("29564758"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
   }
 
   private VkWebhook.Event eventWith(VkWebhook.@Nullable Raid raid) {

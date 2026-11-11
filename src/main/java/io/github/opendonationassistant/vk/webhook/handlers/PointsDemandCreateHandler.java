@@ -53,20 +53,24 @@ public class PointsDemandCreateHandler implements VkEventHandler {
   ) {
     return accountRepository
       .findByVKId(userId)
-      .stream()
-      .findFirst()
-      .map(account ->
-        account
-          .reward(rewardId)
-          .map(it -> it.accept(demand))
+      .thenCompose(accounts ->
+        accounts
+          .stream()
+          .findFirst()
+          .map(account ->
+            account.reward(rewardId).thenCompose(reward ->
+              reward
+                .map(it -> it.accept(demand))
+                .orElseGet(() -> {
+                  metrics.eventUnknownReward(eventType);
+                  return CompletableFuture.<Void>completedFuture(null);
+                })
+            )
+          )
           .orElseGet(() -> {
-            metrics.eventUnknownReward(eventType);
+            metrics.eventNoAccount(eventType);
             return CompletableFuture.<Void>completedFuture(null);
           })
-      )
-      .orElseGet(() -> {
-        metrics.eventNoAccount(eventType);
-        return CompletableFuture.<Void>completedFuture(null);
-      });
+      );
   }
 }

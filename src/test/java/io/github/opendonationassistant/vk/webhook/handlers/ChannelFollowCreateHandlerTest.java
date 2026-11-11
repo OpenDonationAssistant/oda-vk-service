@@ -25,7 +25,11 @@ public class ChannelFollowCreateHandlerTest {
   SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
   VkMetrics metrics = new VkMetrics(meterRegistry);
   ChannelFollowCreateHandler handler = new ChannelFollowCreateHandler(
-    new AccountEventForwarder(accountRepository, events, metrics)
+    new AccountEventForwarder(
+      accountRepository,
+      eventSender(events),
+      metrics
+    )
   );
 
   @Test
@@ -37,7 +41,7 @@ public class ChannelFollowCreateHandlerTest {
   public void testSendingFollowEvent() throws Exception {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
 
     assertNull(handler.handle(followEvent()).join());
 
@@ -54,7 +58,7 @@ public class ChannelFollowCreateHandlerTest {
 
   @Test
   public void testNotSendingWithoutAccount() throws Exception {
-    when(accountRepository.findByVKId("123123123")).thenReturn(List.of());
+    when(accountRepository.findByVKId("123123123")).thenReturn(found());
 
     assertNull(handler.handle(followEvent()).join());
 
@@ -99,7 +103,7 @@ public class ChannelFollowCreateHandlerTest {
   private void stubAccount() {
     var account = account("123123123", "recipient-123");
     when(accountRepository.findByVKId("123123123"))
-      .thenReturn(List.of(account));
+      .thenReturn(found(account));
   }
 
   private VkWebhook.Event eventWith(VkWebhook.@Nullable Follow follow) {

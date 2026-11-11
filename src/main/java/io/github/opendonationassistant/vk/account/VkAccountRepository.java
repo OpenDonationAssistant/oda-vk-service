@@ -6,6 +6,7 @@ import io.github.opendonationassistant.integration.VkClientFactory;
 import io.github.opendonationassistant.vk.reward.RewardDataRepository;
 import jakarta.inject.Singleton;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class VkAccountRepository {
@@ -27,7 +28,7 @@ public class VkAccountRepository {
     this.media = media;
   }
 
-  public VkAccount create(
+  public CompletableFuture<VkAccount> create(
     String recipientId,
     String refreshTokenId,
     String vkId,
@@ -42,27 +43,30 @@ public class VkAccountRepository {
       recipientId,
       refreshTokenId
     );
-    var saved = dataRepository.save(data);
-    return convert(saved);
+    return dataRepository.save(data).thenApply(this::convert);
   }
 
-  public List<VkAccount> findByVKId(String vkId) {
-    return dataRepository.findByVkId(vkId).stream().map(this::convert).toList();
+  public CompletableFuture<List<VkAccount>> findByVKId(String vkId) {
+    return dataRepository
+      .findByVkId(vkId)
+      .thenApply(data -> data.stream().map(this::convert).toList());
   }
 
-  public List<VkAccount> findByRecipientId(String recipientId) {
-    var data = dataRepository.findByRecipientId(recipientId);
-    return data.stream().map(this::convert).toList();
+  public CompletableFuture<List<VkAccount>> findByRecipientId(
+    String recipientId
+  ) {
+    return dataRepository
+      .findByRecipientId(recipientId)
+      .thenApply(data -> data.stream().map(this::convert).toList());
   }
 
-  public void deleteByRecipientIdAndRefreshTokenId(
+  public CompletableFuture<Void> deleteByRecipientIdAndRefreshTokenId(
     String recipientId,
     String refreshTokenId
   ) {
-    dataRepository.deleteByRecipientIdAndRefreshTokenId(
-      recipientId,
-      refreshTokenId
-    );
+    return dataRepository
+      .deleteByRecipientIdAndRefreshTokenId(recipientId, refreshTokenId)
+      .thenAccept(deleted -> {});
   }
 
   private VkAccount convert(VkAccountData data) {

@@ -3,10 +3,15 @@ package io.github.opendonationassistant.vk.webhook.handlers;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.github.opendonationassistant.commons.BlockingExecutor;
+import io.github.opendonationassistant.rabbit.AsyncRabbitClient;
+import io.github.opendonationassistant.rabbit.RabbitClient;
 import io.github.opendonationassistant.vk.account.VkAccount;
 import io.github.opendonationassistant.vk.account.VkAccountData;
 import io.github.opendonationassistant.vk.webhook.VkWebhook;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 
 /**
  * Shared fixtures for VK webhook handler tests.
@@ -15,7 +20,19 @@ import java.util.List;
  */
 final class HandlerTestFixtures {
 
+  static final BlockingExecutor BLOCKING_EXECUTOR = new BlockingExecutor(
+    Executors.newVirtualThreadPerTaskExecutor()
+  );
+
   private HandlerTestFixtures() {}
+
+  static CompletableFuture<List<VkAccount>> found(VkAccount... accounts) {
+    return CompletableFuture.completedFuture(List.of(accounts));
+  }
+
+  static AsyncRabbitClient eventSender(RabbitClient events) {
+    return new AsyncRabbitClient(events, BLOCKING_EXECUTOR);
+  }
 
   static VkAccount account(String vkId, String recipientId) {
     var account = mock(VkAccount.class);

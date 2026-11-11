@@ -7,11 +7,10 @@ import io.github.opendonationassistant.integration.VkDataClient;
 import io.github.opendonationassistant.vk.reward.RewardData;
 import io.github.opendonationassistant.vk.reward.RewardDataRepository;
 import io.github.opendonationassistant.vk.reward.VkReward;
-import io.github.opendonationassistant.vk.webhook.VkWebhook;
 import io.micronaut.serde.annotation.Serdeable;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Stream;
 
 @Serdeable
 public class VkAccount {
@@ -39,15 +38,18 @@ public class VkAccount {
     return data;
   }
 
-  public Optional<VkReward> reward(String id) {
-    return rewardRepository.findById(id).map(this::convert);
+  public CompletableFuture<Optional<VkReward>> reward(String id) {
+    return rewardRepository
+      .findOneById(id)
+      .thenApply(found -> found.map(this::convert));
   }
 
-  public Stream<VkReward> getRewardsForWidget(String widgetId) {
+  public CompletableFuture<List<VkReward>> getRewardsForWidget(
+    String widgetId
+  ) {
     return rewardRepository
       .findByWidgetId(widgetId)
-      .stream()
-      .map(this::convert);
+      .thenApply(rewards -> rewards.stream().map(this::convert).toList());
   }
 
   public CompletableFuture<Void> createReward(
@@ -57,26 +59,29 @@ public class VkAccount {
     Integer cost
   ) {
     return vk()
-      .createReward(
-        data.channelUrl(),
-        new VkDataClient.RewardRequest(
-          new VkDataClient.RewardRequest.Reward(
-            // 0,
-            // null,
-            true,
-            // -1,
-            // -1,
-            title,
-            cost
+      .thenCompose(vkClient ->
+        vkClient.createReward(
+          data.channelUrl(),
+          new VkDataClient.RewardRequest(
+            new VkDataClient.RewardRequest.Reward(
+              // 0,
+              // null,
+              true,
+              // -1,
+              // -1,
+              title,
+              cost
+            )
           )
         )
       )
-      .thenAccept(id ->
+      .thenCompose(id ->
         rewardRepository.save(new RewardData(id, data.id(), widgetId, type))
-      );
+      )
+      .thenAccept(it -> {});
   }
 
-  private VkClient vk() {
+  private CompletableFuture<VkClient> vk() {
     return vkClientFactory.create(data.recipientId(), data.refreshTokenId());
   }
 
