@@ -1,13 +1,10 @@
 package io.github.opendonationassistant.integration;
 
-import io.github.opendonationassistant.rabbit.TokenRPC;
+import io.github.opendonationassistant.rabbit.AsyncTokenRPC;
 import io.github.opendonationassistant.rabbit.TokenRPC.TokenRequest;
-import io.micronaut.scheduling.TaskExecutors;
 import jakarta.inject.Inject;
-import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 
 @Singleton
 public class VkClientFactory {
@@ -15,29 +12,21 @@ public class VkClientFactory {
   private static final String BEARER_PREFIX = "Bearer ";
 
   private final VkDataClient client;
-  private final TokenRPC tokenRPC;
-  private final ExecutorService blockingExecutor;
+  private final AsyncTokenRPC asyncTokenRpc;
 
   @Inject
-  public VkClientFactory(
-    VkDataClient client,
-    TokenRPC tokenRPC,
-    @Named(TaskExecutors.BLOCKING) ExecutorService blockingExecutor
-  ) {
+  public VkClientFactory(VkDataClient client, AsyncTokenRPC asyncTokenRpc) {
     this.client = client;
-    this.tokenRPC = tokenRPC;
-    this.blockingExecutor = blockingExecutor;
+    this.asyncTokenRpc = asyncTokenRpc;
   }
 
   public CompletableFuture<VkClient> create(
     String recipientId,
     String refreshTokenId
   ) {
-    return CompletableFuture.supplyAsync(
-      () -> {
-        var response = tokenRPC.token(
-          new TokenRequest(recipientId, refreshTokenId)
-        );
+    return asyncTokenRpc
+      .token(new TokenRequest(recipientId, refreshTokenId))
+      .thenApply(response -> {
         if (
           response == null ||
           response.token() == null ||
@@ -48,8 +37,6 @@ public class VkClientFactory {
           );
         }
         return new VkClient(client, BEARER_PREFIX + response.token());
-      },
-      blockingExecutor
-    );
+      });
   }
 }

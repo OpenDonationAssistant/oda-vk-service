@@ -3,7 +3,9 @@ package io.github.opendonationassistant;
 import io.github.opendonationassistant.commons.BlockingExecutor;
 import io.github.opendonationassistant.rabbit.AMQPConfiguration;
 import io.github.opendonationassistant.rabbit.AsyncRabbitClient;
+import io.github.opendonationassistant.rabbit.AsyncTokenRPC;
 import io.github.opendonationassistant.rabbit.RabbitClient;
+import io.github.opendonationassistant.rabbit.TokenRPC;
 import io.github.opendonationassistant.vk.reward.WidgetChangedEventHandler;
 import io.micronaut.context.ApplicationContextBuilder;
 import io.micronaut.context.ApplicationContextConfigurer;
@@ -66,5 +68,13 @@ public class Application {
     BlockingExecutor blockingExecutor
   ) {
     return new AsyncRabbitClient(events, blockingExecutor);
+  }
+
+  @Singleton
+  public AsyncTokenRPC asyncTokenRpc(
+    TokenRPC tokenRPC,
+    BlockingExecutor blockingExecutor
+  ) {
+    return new AsyncTokenRPC(tokenRPC, blockingExecutor);
   }
 }

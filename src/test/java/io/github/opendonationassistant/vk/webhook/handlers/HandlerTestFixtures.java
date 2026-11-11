@@ -13,11 +13,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
-/**
- * Shared fixtures for VK webhook handler tests.
- *
- * <p>These builders were previously copy-pasted into every handler test.
- */
 final class HandlerTestFixtures {
 
   static final BlockingExecutor BLOCKING_EXECUTOR = new BlockingExecutor(

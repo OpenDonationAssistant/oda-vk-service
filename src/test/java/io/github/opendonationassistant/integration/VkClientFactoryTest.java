@@ -4,15 +4,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import io.github.opendonationassistant.rabbit.AsyncTokenRPC;
 import io.github.opendonationassistant.rabbit.TokenRPC;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 public class VkClientFactoryTest {
@@ -22,19 +19,11 @@ public class VkClientFactoryTest {
   private static final String CHANNEL_URL = "stcarolas";
 
   private final VkDataClient data = mock(VkDataClient.class);
-  private final TokenRPC tokenRPC = mock(TokenRPC.class);
-  private final ExecutorService blockingExecutor =
-    Executors.newVirtualThreadPerTaskExecutor();
+  private final AsyncTokenRPC asyncTokenRpc = mock(AsyncTokenRPC.class);
   private final VkClientFactory factory = new VkClientFactory(
     data,
-    tokenRPC,
-    blockingExecutor
+    asyncTokenRpc
   );
-
-  @AfterEach
-  public void shutdownExecutor() {
-    blockingExecutor.close();
-  }
 
   @Test
   public void testCreatesClientWithResolvedBearerToken() {
@@ -55,7 +44,9 @@ public class VkClientFactoryTest {
 
   @Test
   public void testFailsWhenTokenResponseIsMissing() {
-    when(tokenRPC.token(any(TokenRPC.TokenRequest.class))).thenReturn(null);
+    when(asyncTokenRpc.token(any(TokenRPC.TokenRequest.class))).thenReturn(
+      CompletableFuture.completedFuture(null)
+    );
 
     var error = tokenFailure();
 
@@ -65,10 +56,11 @@ public class VkClientFactoryTest {
   }
 
   @Test
-  @SuppressWarnings("NullAway")
   public void testFailsWhenTokenIsMissing() {
-    when(tokenRPC.token(any(TokenRPC.TokenRequest.class))).thenReturn(
-      new TokenRPC.TokenResponse(null, "no token")
+    when(asyncTokenRpc.token(any(TokenRPC.TokenRequest.class))).thenReturn(
+      CompletableFuture.completedFuture(
+        new TokenRPC.TokenResponse(null, "no token")
+      )
     );
 
     assertNotNull(tokenFailure());
@@ -93,8 +85,8 @@ public class VkClientFactoryTest {
   }
 
   private void givenToken(String token) {
-    when(tokenRPC.token(any(TokenRPC.TokenRequest.class))).thenReturn(
-      new TokenRPC.TokenResponse(token, "")
+    when(asyncTokenRpc.token(any(TokenRPC.TokenRequest.class))).thenReturn(
+      CompletableFuture.completedFuture(new TokenRPC.TokenResponse(token, ""))
     );
   }
 

@@ -62,7 +62,7 @@ RabbitMQ "changes.widgets" ──▶ WidgetChangedEventHandler              │
                                               ▼
                                     VkClient ──▶ VkDataClient ──▶ external vklive-data service
                                               │
-                                    TokenRPC (RabbitMQ RPC for auth tokens)
+                                    AsyncTokenRPC ──▶ TokenRPC (auth token RPC)
                                               │
                                     MediaRPC (RabbitMQ RPC, "rpc" exchange, media.add)
                                               │
@@ -71,13 +71,13 @@ RabbitMQ "changes.widgets" ──▶ WidgetChangedEventHandler              │
 
 **3 inbound channels:** HTTP webhook (anonymous), RabbitMQ command queue, RabbitMQ widget-change queue
 **1 outbound HTTP:** VkDataClient to vklive-data service
-**2 outbound RabbitMQ:** Normalized events via `@Named("vklive") RabbitClient`, RPC calls via `TokenRPC` and `MediaRPC`
+**2 outbound RabbitMQ:** Normalized events via `@Named("vklive") RabbitClient`, RPC calls via `TokenRPC` (wrapped by `AsyncTokenRPC`) and `MediaRPC`
 **1 authenticated endpoint:** `GetSocketChannels` (POST, JWT required)
 
 ## EXTERNAL DEPENDENCY: oda-rabbit-conf
 
 Critical shared library (`io.github.opendonationassistant:oda-rabbit-conf:0.12.247`) provides:
-- `RabbitClient` / `AsyncRabbitClient` / `TokenRPC` - RabbitMQ messaging (synchronous client + `CompletableFuture` wrapper) + token RPC
+- `RabbitClient` / `AsyncRabbitClient` / `TokenRPC` / `AsyncTokenRPC` - RabbitMQ messaging and token RPC (synchronous clients + `CompletableFuture` wrappers)
 - `MessageProcessor` / `AbstractMessageHandler` - Command processing framework
 - `BaseController` - Base HTTP controller with auth helpers
 - `ODALogger` - Structured logging wrapper
@@ -94,7 +94,7 @@ Critical shared library (`io.github.opendonationassistant:oda-rabbit-conf:0.12.2
 - **Nested record DTOs** - HTTP payloads defined as `public static record` inside controller/handler classes
 - **`Vk` vs `VK` dual naming** - service classes use `Vk` prefix, external event types use `VK` (all-caps)
 - **No reactive streams** - `CompletableFuture` exclusively; Reactor/RxJava explicitly excluded in AOT config
-- **RPC clients can be async** - `@RabbitClient` interfaces may declare `CompletableFuture<T>` returns; the `micronaut-rabbitmq` fork pinned in `pom.xml` (5.1.1-fork.1) resolves the reply type from the future's type variable. `MediaRPC` uses this directly; `TokenRPC` remains synchronous. There is no async media adapter - call `MediaRPC.add(...)` and compose the future.
+- **RPC clients can be async** - `@RabbitClient` interfaces may declare `CompletableFuture<T>` returns; the `micronaut-rabbitmq` fork pinned in `pom.xml` (5.1.1-fork.1) resolves the reply type from the future's type variable. `MediaRPC` uses this directly; `TokenRPC` stays a synchronous interface but is wrapped by `AsyncTokenRPC`, which `VkClientFactory` uses for the token lookup. There is no async media adapter - call `MediaRPC.add(...)` and compose the future.
 - **`var` extensively** - local variable type inference used throughout
 - **Constructor injection only** - `@Inject` on constructors, `private final` fields
 - **`ODALogger` with `Map.of()`** - structured logging, never `System.out` or `printStackTrace` (except one known violation in VkWebhook)
