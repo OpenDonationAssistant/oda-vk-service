@@ -1,5 +1,6 @@
 package io.github.opendonationassistant.vk.account;
 
+import io.github.opendonationassistant.commons.logging.ODALogger;
 import io.github.opendonationassistant.integration.MediaRPC;
 import io.github.opendonationassistant.integration.VkClient;
 import io.github.opendonationassistant.integration.VkClientFactory;
@@ -9,6 +10,7 @@ import io.github.opendonationassistant.vk.reward.RewardDataRepository;
 import io.github.opendonationassistant.vk.reward.VkReward;
 import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -21,6 +23,7 @@ public class VkAccount {
   private final VkClientFactory vkClientFactory;
   private final RewardDataRepository rewardRepository;
   private final MediaRPC media;
+  private ODALogger log = new ODALogger(this);
 
   public VkAccount(
     VkAccountData data,
@@ -59,8 +62,9 @@ public class VkAccount {
     Integer cost
   ) {
     return vk()
-      .thenCompose(vkClient ->
-        vkClient.createReward(
+      .thenCompose(vkClient -> {
+        log.debug("Token obtained", Map.of("widgetId", widgetId));
+        return vkClient.createReward(
           data.channelUrl(),
           new VkDataClient.RewardRequest(
             new VkDataClient.RewardRequest.Reward(
@@ -73,11 +77,13 @@ public class VkAccount {
               cost
             )
           )
-        )
+        );
+      }
       )
-      .thenCompose(id ->
-        rewardRepository.save(new RewardData(id, data.id(), widgetId, type))
-      )
+      .thenCompose(id -> {
+        log.debug("Reward created, saving it", Map.of("id", id));
+        return rewardRepository.save(new RewardData(id, data.id(), widgetId, type));
+      })
       .thenAccept(it -> {});
   }
 
